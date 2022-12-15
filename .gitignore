@@ -1,0 +1,22 @@
+*.class
+
+# Package Files #
+*.jar
+*.war
+*.ear
+*.zip
+
+nbproject/private
+Output
+build
+out
+out
+.idea
+**/*.iml
+
+target/
+.settings
+.classpath
+.project
+
+jsignpdf/conf/
