@@ -1,4 +1,5 @@
 *.class
+dependency-reduced-pom.xml
 
 # Package Files #
 *.jar
@@ -18,5 +19,3 @@ target/
 .settings
 .classpath
 .project
-
-jsignpdf/conf/
