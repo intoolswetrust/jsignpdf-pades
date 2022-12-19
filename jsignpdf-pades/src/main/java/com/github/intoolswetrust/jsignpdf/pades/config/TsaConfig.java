@@ -1,13 +1,9 @@
 package com.github.intoolswetrust.jsignpdf.pades.config;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.converters.FileConverter;
-
-import eu.europa.esig.dss.enumerations.DigestAlgorithm;
 
 public class TsaConfig {
 
@@ -23,7 +19,7 @@ public class TsaConfig {
 
     @Parameter(names = {"--tsa-user", "-tsu"}, description = "Username for TSA Basic authentication")
     private String tsaUser;
-    @Parameter(names = {"--tsa-password", "-ts"}, description = "Password for TSA Basic authentication")
+    @Parameter(names = {"--tsa-password", "-tsp"}, description = "Password for TSA Basic authentication")
     private String tsaPassword;
     @Parameter(names = {"--tsa-policy-oid"}, description = "TSA policy OID")
     private String tsaPolicyOid;

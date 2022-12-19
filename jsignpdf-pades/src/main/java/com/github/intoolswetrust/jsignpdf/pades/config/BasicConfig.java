@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.beust.jcommander.Parameter;
+import com.beust.jcommander.ParametersDelegate;
 import com.beust.jcommander.converters.FileConverter;
 
 import eu.europa.esig.dss.enumerations.DigestAlgorithm;
@@ -59,6 +60,7 @@ public class BasicConfig {
     @Parameter(names = {"--digest-algorithm", "-da"}, description = "Digest algorithm used in the signature")
     private DigestAlgorithm digestAlgorithm = DigestAlgorithm.SHA256;
 
+    @ParametersDelegate
     private final TsaConfig tsaConfig = new TsaConfig();
 
     public List<File> getFiles() {
