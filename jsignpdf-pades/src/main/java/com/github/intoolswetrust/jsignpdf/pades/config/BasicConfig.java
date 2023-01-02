@@ -27,7 +27,7 @@ public class BasicConfig {
     @Parameter(names = { "--keystore-type", "-kst" }, description = "Keystore type to be loaded")
     private String keyStoreType;
 
-    @Parameter(names = { "--keystore-file", "-ksf" }, converter = FileConverter.class, description = "Keystore file to be used")
+    @Parameter(names = { "--keystore-file", "-ksf" }, description = "Keystore file to be used")
     private File keyStoreFile;
 
     @Parameter(names = { "--keystore-password", "-ksp" }, description = "KeyStore password")
@@ -45,7 +45,8 @@ public class BasicConfig {
     @Parameter(names = { "--out-suffix", "-os" }, description = "Signed file suffix to be attached to the original name")
     private String outSuffix = "_signed";
 
-    @Parameter(names = { "--out-directory", "-d" }, converter = FileConverter.class, description = "Directory to write the signed PDFs to. If not provided, the source directory of input PDF file is used.")
+    @Parameter(names = { "--out-directory",
+            "-d" }, description = "Directory to write the signed PDFs to. If not provided, the source directory of input PDF file is used.")
     private File outDirectory;
 
     @Parameter(names = "--disable-validity-check", description = "Don't check certificate validity in the keystore")
@@ -57,11 +58,14 @@ public class BasicConfig {
     @Parameter(names = "--disable-critical-extensions-check", description = "Don't check if all certificate critical extensions are known")
     private boolean disableCriticalExtensionsCheck;
 
-    @Parameter(names = {"--digest-algorithm", "-da"}, description = "Digest algorithm used in the signature")
+    @Parameter(names = { "--digest-algorithm", "-da" }, description = "Digest algorithm used in the signature")
     private DigestAlgorithm digestAlgorithm = DigestAlgorithm.SHA256;
 
     @ParametersDelegate
     private final TsaConfig tsaConfig = new TsaConfig();
+
+    @ParametersDelegate
+    private final TrustConfig trustConfig = new TrustConfig();
 
     public List<File> getFiles() {
         return files;
@@ -203,4 +207,8 @@ public class BasicConfig {
         return tsaConfig;
     }
 
+    public TrustConfig getTrustConfig() {
+        return trustConfig;
+    }
+    
 }

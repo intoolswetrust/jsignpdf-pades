@@ -5,8 +5,8 @@ import static com.github.intoolswetrust.jsignpdf.pades.Constants.LOGGER;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.security.KeyStore.PasswordProtection;
 import java.security.KeyStore;
+import java.security.KeyStore.PasswordProtection;
 import java.security.Security;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -35,6 +35,8 @@ import eu.europa.esig.dss.token.KeyStoreSignatureTokenConnection;
 import eu.europa.esig.dss.validation.CommonCertificateVerifier;
 
 public class Main {
+
+    private static final String LOTL_URL = "https://ec.europa.eu/tools/lotl/eu-lotl.xml";
 
     public static void main(String[] args) {
         int exitCode = 0;
@@ -108,6 +110,8 @@ public class Main {
 
             // Create common certificate verifier
             CommonCertificateVerifier commonCertificateVerifier = new CommonCertificateVerifier();
+            TrustedCertSourcesProvider tcsp = new TrustedCertSourcesProvider(config.getTrustConfig());
+            commonCertificateVerifier.setTrustedCertSources(tcsp.createTrustedCertSources());
             commonCertificateVerifier.setAIASource(new DefaultAIASource());
             commonCertificateVerifier.setCrlSource(new OnlineCRLSource());
             commonCertificateVerifier.setOcspSource(new OnlineOCSPSource());
@@ -154,8 +158,8 @@ public class Main {
 
                 // Optionally or for debug purpose :
                 // Validate the signature value against the original dataToSign
-                LOGGER.fine(
-                        "Signature valid: " + service.isValidSignatureValue(dataToSign, signatureValue, privateKey.getCertificate()));
+                LOGGER.fine("Signature valid: "
+                        + service.isValidSignatureValue(dataToSign, signatureValue, privateKey.getCertificate()));
 
                 // We invoke the padesService to sign the document with the signature value obtained in
                 // the previous step.
