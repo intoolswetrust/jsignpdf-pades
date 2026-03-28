@@ -38,6 +38,7 @@
 
     <modules>
         <module>jsignpdf-pades</module>
+        <module>validator</module>
         <module>distribution</module>
     </modules>
 
