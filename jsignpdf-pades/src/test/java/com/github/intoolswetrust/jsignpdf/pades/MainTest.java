@@ -19,6 +19,7 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 public class MainTest {
@@ -151,12 +152,12 @@ public class MainTest {
     void testEndToEndWithParsedConfig() throws Exception {
         File inPdf = new File(tempDir.toFile(), "input.pdf");
         try (PDDocument doc = new PDDocument()) {
-            doc.getDocument().setVersion(1.7f);
+            doc.setVersion(1.7f);
             PDPage page = new PDPage();
             doc.addPage(page);
             try (PDPageContentStream cs = new PDPageContentStream(doc, page)) {
                 cs.beginText();
-                cs.setFont(PDType1Font.HELVETICA, 12);
+                cs.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
                 cs.newLineAtOffset(100, 700);
                 cs.showText("CLI test");
                 cs.endText();

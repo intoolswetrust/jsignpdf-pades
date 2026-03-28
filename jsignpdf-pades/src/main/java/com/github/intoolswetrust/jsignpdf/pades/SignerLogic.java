@@ -27,6 +27,7 @@ import javax.naming.ldap.Rdn;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.StrSubstitutor;
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
@@ -59,7 +60,7 @@ import eu.europa.esig.dss.pades.signature.PAdESService;
 import eu.europa.esig.dss.service.http.commons.TimestampDataLoader;
 import eu.europa.esig.dss.service.tsp.OnlineTSPSource;
 import eu.europa.esig.dss.token.DSSPrivateKeyEntry;
-import eu.europa.esig.dss.validation.CommonCertificateVerifier;
+import eu.europa.esig.dss.spi.validation.CommonCertificateVerifier;
 
 /**
  * Main logic of signer application. It uses DSS PAdES for creating signatures in PDF.
@@ -266,7 +267,7 @@ public class SignerLogic {
             printing = PrintRight.ALLOW_PRINTING;
         }
         ap.setCanPrint(printing == PrintRight.ALLOW_PRINTING);
-        ap.setCanPrintDegraded(printing != PrintRight.DISALLOW_PRINTING);
+        ap.setCanPrintFaithful(printing != PrintRight.DISALLOW_PRINTING);
         ap.setCanExtractContent(!options.isDisableCopy());
         ap.setCanAssembleDocument(!options.isDisableAssembly());
         ap.setCanFillInForm(!options.isDisableFill());
@@ -277,7 +278,7 @@ public class SignerLogic {
     }
 
     private File encryptPdf(File inFile) throws Exception {
-        try (PDDocument doc = PDDocument.load(inFile)) {
+        try (PDDocument doc = Loader.loadPDF(inFile)) {
             if (!doc.getSignatureDictionaries().isEmpty()) {
                 LOGGER.info("Cannot encrypt PDF with existing signatures.");
                 return null;
@@ -305,7 +306,7 @@ public class SignerLogic {
         int page = options.getPage();
         float pageWidth;
         float pageHeight;
-        try (PDDocument pdDoc = PDDocument.load(inFile)) {
+        try (PDDocument pdDoc = Loader.loadPDF(inFile)) {
             int totalPages = pdDoc.getNumberOfPages();
             if (page < 1 || page > totalPages) {
                 page = totalPages;

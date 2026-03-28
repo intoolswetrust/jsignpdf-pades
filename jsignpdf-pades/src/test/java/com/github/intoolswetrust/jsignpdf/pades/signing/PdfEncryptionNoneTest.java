@@ -2,6 +2,7 @@ package com.github.intoolswetrust.jsignpdf.pades.signing;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.junit.jupiter.api.Test;
 
@@ -22,7 +23,7 @@ public class PdfEncryptionNoneTest extends SigningTestBase {
         boolean success = new SignerLogic(options).signFile(inputFile, outputFile);
         assertTrue(success, "Signing should succeed with NONE encryption");
 
-        try (PDDocument doc = PDDocument.load(outputFile)) {
+        try (PDDocument doc = Loader.loadPDF(outputFile)) {
             assertFalse(doc.isEncrypted(), "Output should not be encrypted when PDFEncryption is NONE");
         }
     }
@@ -35,7 +36,7 @@ public class PdfEncryptionNoneTest extends SigningTestBase {
         boolean success = new SignerLogic(options).signFile(inputFile, outputFile);
         assertTrue(success, "Signing should succeed with null encryption");
 
-        try (PDDocument doc = PDDocument.load(outputFile)) {
+        try (PDDocument doc = Loader.loadPDF(outputFile)) {
             assertFalse(doc.isEncrypted(), "Output should not be encrypted when PDFEncryption is null");
         }
     }

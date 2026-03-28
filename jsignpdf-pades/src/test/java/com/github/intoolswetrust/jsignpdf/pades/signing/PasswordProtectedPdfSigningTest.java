@@ -6,12 +6,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.encryption.AccessPermission;
 import org.apache.pdfbox.pdmodel.encryption.StandardProtectionPolicy;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.junit.jupiter.api.Test;
 
 import com.github.intoolswetrust.jsignpdf.pades.config.BasicConfig;
@@ -113,7 +115,7 @@ public class PasswordProtectedPdfSigningTest extends SigningTestBase {
         assertTrue(outputFile.exists(), "Output file should exist");
 
         // Output should be encrypted — loading without password should fail or report encrypted
-        try (PDDocument doc = PDDocument.load(outputFile, OWNER_PASSWORD)) {
+        try (PDDocument doc = Loader.loadPDF(outputFile, OWNER_PASSWORD)) {
             assertTrue(doc.isEncrypted(), "Output PDF should be encrypted");
         }
 
@@ -165,7 +167,7 @@ public class PasswordProtectedPdfSigningTest extends SigningTestBase {
 
         // Load with the user password to see restricted permissions
         // (owner password grants full access per PDF spec)
-        try (PDDocument doc = PDDocument.load(outputFile, USER_PASSWORD)) {
+        try (PDDocument doc = Loader.loadPDF(outputFile, USER_PASSWORD)) {
             assertTrue(doc.isEncrypted(), "Output PDF should be encrypted");
             AccessPermission ap = doc.getCurrentAccessPermission();
             assertFalse(ap.canPrint(), "Printing should be disallowed");
@@ -182,12 +184,12 @@ public class PasswordProtectedPdfSigningTest extends SigningTestBase {
     private File createPasswordProtectedPdf(String ownerPassword, String userPassword) throws Exception {
         File protectedPdf = new File(tempDir.toFile(), "protected.pdf");
         PDDocument doc = new PDDocument();
-        doc.getDocument().setVersion(1.7f);
+        doc.setVersion(1.7f);
         PDPage page = new PDPage();
         doc.addPage(page);
         PDPageContentStream cs = new PDPageContentStream(doc, page);
         cs.beginText();
-        cs.setFont(PDType1Font.HELVETICA, 12);
+        cs.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
         cs.newLineAtOffset(100, 700);
         cs.showText("Password-protected test PDF");
         cs.endText();

@@ -10,7 +10,6 @@ import java.util.List;
 
 import eu.europa.esig.dss.enumerations.DigestAlgorithm;
 import eu.europa.esig.dss.enumerations.EncryptionAlgorithm;
-import eu.europa.esig.dss.enumerations.MaskGenerationFunction;
 import eu.europa.esig.dss.enumerations.SignatureAlgorithm;
 import eu.europa.esig.dss.model.DSSException;
 import eu.europa.esig.dss.model.SignatureValue;
@@ -45,15 +44,10 @@ public class PrivateKeySignatureToken extends AbstractSignatureTokenConnection {
 
     @Override
     public SignatureValue sign(ToBeSigned toBeSigned, DigestAlgorithm digestAlgorithm,
-            MaskGenerationFunction mgf, DSSPrivateKeyEntry keyEntry) throws DSSException {
+            DSSPrivateKeyEntry keyEntry) throws DSSException {
         try {
             EncryptionAlgorithm encAlg = EncryptionAlgorithm.forKey(privateKey);
-            SignatureAlgorithm sigAlg;
-            if (mgf != null) {
-                sigAlg = SignatureAlgorithm.getAlgorithm(encAlg, digestAlgorithm, mgf);
-            } else {
-                sigAlg = SignatureAlgorithm.getAlgorithm(encAlg, digestAlgorithm);
-            }
+            SignatureAlgorithm sigAlg = SignatureAlgorithm.getAlgorithm(encAlg, digestAlgorithm);
 
             Signature signature = Signature.getInstance(sigAlg.getJCEId());
             signature.initSign(privateKey);

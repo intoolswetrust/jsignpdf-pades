@@ -56,8 +56,9 @@ public class TrustedCertSourcesProvider {
         }
         File truststoreFile = trustConfig.getKeystoreFile();
         if (truststoreFile != null) {
+            String ksPwd = trustConfig.getKeystorePassword();
             KeyStoreCertificateSource source = new KeyStoreCertificateSource(truststoreFile, trustConfig.getKeystoreType(),
-                    trustConfig.getKeystorePassword());
+                    ksPwd != null ? ksPwd.toCharArray() : null);
             trustedSources.add(source);
         }
         return trustedSources.toArray(new CertificateSource[trustedSources.size()]);
