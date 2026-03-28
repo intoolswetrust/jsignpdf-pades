@@ -99,6 +99,12 @@ public class BasicConfig {
     @Parameter(names = { "--visible-signature", "-V" }, description = "Enable visible signature")
     private boolean visible;
 
+    @Parameter(names = "--add-blank-page", description = "Add a blank page for the visible signature")
+    private boolean addBlankPage;
+
+    @Parameter(names = "--image-only", description = "Image-only visible signature (no text)")
+    private boolean imageOnly;
+
     @Parameter(names = { "-pg", "--page" }, description = "Page for visible signature")
     private int page = 1;
 
@@ -337,6 +343,22 @@ public class BasicConfig {
 
     public void setVisible(boolean visible) {
         this.visible = visible;
+    }
+
+    public boolean isAddBlankPage() {
+        return addBlankPage;
+    }
+
+    public void setAddBlankPage(boolean addBlankPage) {
+        this.addBlankPage = addBlankPage;
+    }
+
+    public boolean isImageOnly() {
+        return imageOnly;
+    }
+
+    public void setImageOnly(boolean imageOnly) {
+        this.imageOnly = imageOnly;
     }
 
     public int getPage() {

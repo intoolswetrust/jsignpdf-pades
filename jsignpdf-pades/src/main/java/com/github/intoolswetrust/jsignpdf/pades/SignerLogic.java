@@ -91,6 +91,7 @@ public class SignerLogic {
 
         boolean finished = false;
         File encryptedTempFile = null;
+        File blankPageTempFile = null;
         try {
             final KeyStore ks = KeyStoreUtils.loadKeyStore(
                     options.getKeyStoreType(),
@@ -195,14 +196,21 @@ public class SignerLogic {
                 }
             }
 
+            // Add blank page if requested (before loading as DSSDocument)
+            File effectiveInFile = encryptedTempFile != null ? encryptedTempFile : inFile;
+            if (options.isVisible() && options.isAddBlankPage()) {
+                LOGGER.info("Adding blank page for signature.");
+                blankPageTempFile = addBlankPage(effectiveInFile);
+                effectiveInFile = blankPageTempFile;
+            }
+
             // Load input document
-            DSSDocument document = new FileDocument(
-                    encryptedTempFile != null ? encryptedTempFile : inFile);
+            DSSDocument document = new FileDocument(effectiveInFile);
 
             // Handle visible signature
             if (options.isVisible()) {
                 LOGGER.info("Configuring visible signature.");
-                configureVisibleSignature(parameters, chain, signingCal, inFile);
+                configureVisibleSignature(parameters, chain, signingCal, effectiveInFile);
             }
 
             CommonCertificateVerifier verifier = new CommonCertificateVerifier();
@@ -255,6 +263,9 @@ public class SignerLogic {
             if (encryptedTempFile != null) {
                 encryptedTempFile.delete();
             }
+            if (blankPageTempFile != null) {
+                blankPageTempFile.delete();
+            }
             LOGGER.info("Signing " + (finished ? "finished successfully." : "failed."));
         }
         return finished;
@@ -298,6 +309,16 @@ public class SignerLogic {
         }
     }
 
+    private File addBlankPage(File inputFile) throws Exception {
+        File tempFile = File.createTempFile("jsignpdf-blank-", ".pdf");
+        tempFile.deleteOnExit();
+        try (PDDocument doc = Loader.loadPDF(inputFile)) {
+            doc.addPage(new PDPage());
+            doc.save(tempFile);
+        }
+        return tempFile;
+    }
+
     private void configureVisibleSignature(PAdESSignatureParameters parameters,
             Certificate[] chain, Calendar signingCal, File inFile) throws Exception {
 
@@ -308,7 +329,10 @@ public class SignerLogic {
         float pageHeight;
         try (PDDocument pdDoc = Loader.loadPDF(inFile)) {
             int totalPages = pdDoc.getNumberOfPages();
-            if (page < 1 || page > totalPages) {
+            if (options.isAddBlankPage()) {
+                // Blank page was added as last page — use it
+                page = totalPages;
+            } else if (page < 1 || page > totalPages) {
                 page = totalPages;
             }
             PDPage pdPage = pdDoc.getPage(page - 1);
@@ -338,54 +362,58 @@ public class SignerLogic {
         fieldParams.setHeight(height);
         imageParams.setFieldParameters(fieldParams);
 
-        LOGGER.info("Setting L2 text.");
-        X509Certificate signerCert = (X509Certificate) chain[0];
-        String signer = extractCN(signerCert);
-        if (StringUtils.isNotEmpty(options.getSignerName())) {
-            signer = options.getSignerName();
-        }
-        final String certificate = signerCert.getSubjectX500Principal().toString();
-        final String timestamp = new SimpleDateFormat("yyyy.MM.dd HH:mm:ss z").format(signingCal.getTime());
-
-        String l2text;
-        if (options.getL2Text() != null) {
-            final Map<String, String> replacements = new HashMap<>();
-            replacements.put(L2TEXT_PLACEHOLDER_SIGNER, StringUtils.defaultString(signer));
-            replacements.put(L2TEXT_PLACEHOLDER_CERTIFICATE, certificate);
-            replacements.put(L2TEXT_PLACEHOLDER_TIMESTAMP, timestamp);
-            replacements.put(L2TEXT_PLACEHOLDER_LOCATION, StringUtils.defaultString(options.getLocation()));
-            replacements.put(L2TEXT_PLACEHOLDER_REASON, StringUtils.defaultString(options.getReason()));
-            replacements.put(L2TEXT_PLACEHOLDER_CONTACT, StringUtils.defaultString(options.getContact()));
-            l2text = StrSubstitutor.replace(options.getL2Text(), replacements);
-        } else {
-            final StringBuilder buf = new StringBuilder();
-            buf.append("Signed by: ").append(signer).append('\n');
-            buf.append("Date: ").append(timestamp);
-            if (StringUtils.isNotEmpty(options.getReason()))
-                buf.append('\n').append("Reason: ").append(options.getReason());
-            if (StringUtils.isNotEmpty(options.getLocation()))
-                buf.append('\n').append("Location: ").append(options.getLocation());
-            l2text = buf.toString();
-        }
-
-        SignatureImageTextParameters textParams = new SignatureImageTextParameters();
-        textParams.setText(l2text);
-
-        float fontSize = options.getL2TextFontSize();
-        if (fontSize <= 0f) {
-            fontSize = 10.0f;
-        }
-        DSSFont font = FontUtils.getL2BaseFont();
-        if (font != null) {
-            font.setSize(fontSize);
-            textParams.setFont(font);
-        }
-        imageParams.setTextParameters(textParams);
-
+        // Set image if provided
         final String bgImgPath = options.getBgImgPath();
         if (bgImgPath != null) {
-            LOGGER.info("Setting background image: " + bgImgPath);
+            LOGGER.info("Setting image: " + bgImgPath);
             imageParams.setImage(new FileDocument(bgImgPath));
+        }
+
+        // Image-only mode: skip text parameters
+        if (!options.isImageOnly()) {
+            LOGGER.info("Setting L2 text.");
+            X509Certificate signerCert = (X509Certificate) chain[0];
+            String signer = extractCN(signerCert);
+            if (StringUtils.isNotEmpty(options.getSignerName())) {
+                signer = options.getSignerName();
+            }
+            final String certificate = signerCert.getSubjectX500Principal().toString();
+            final String timestamp = new SimpleDateFormat("yyyy.MM.dd HH:mm:ss z").format(signingCal.getTime());
+
+            String l2text;
+            if (options.getL2Text() != null) {
+                final Map<String, String> replacements = new HashMap<>();
+                replacements.put(L2TEXT_PLACEHOLDER_SIGNER, StringUtils.defaultString(signer));
+                replacements.put(L2TEXT_PLACEHOLDER_CERTIFICATE, certificate);
+                replacements.put(L2TEXT_PLACEHOLDER_TIMESTAMP, timestamp);
+                replacements.put(L2TEXT_PLACEHOLDER_LOCATION, StringUtils.defaultString(options.getLocation()));
+                replacements.put(L2TEXT_PLACEHOLDER_REASON, StringUtils.defaultString(options.getReason()));
+                replacements.put(L2TEXT_PLACEHOLDER_CONTACT, StringUtils.defaultString(options.getContact()));
+                l2text = StrSubstitutor.replace(options.getL2Text(), replacements);
+            } else {
+                final StringBuilder buf = new StringBuilder();
+                buf.append("Signed by: ").append(signer).append('\n');
+                buf.append("Date: ").append(timestamp);
+                if (StringUtils.isNotEmpty(options.getReason()))
+                    buf.append('\n').append("Reason: ").append(options.getReason());
+                if (StringUtils.isNotEmpty(options.getLocation()))
+                    buf.append('\n').append("Location: ").append(options.getLocation());
+                l2text = buf.toString();
+            }
+
+            SignatureImageTextParameters textParams = new SignatureImageTextParameters();
+            textParams.setText(l2text);
+
+            float fontSize = options.getL2TextFontSize();
+            if (fontSize <= 0f) {
+                fontSize = 10.0f;
+            }
+            DSSFont font = FontUtils.getL2BaseFont();
+            if (font != null) {
+                font.setSize(fontSize);
+                textParams.setFont(font);
+            }
+            imageParams.setTextParameters(textParams);
         }
 
         LOGGER.info("Setting visible signature parameters.");
