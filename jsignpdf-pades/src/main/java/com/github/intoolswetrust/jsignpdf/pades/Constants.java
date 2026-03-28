@@ -54,4 +54,15 @@ public class Constants {
         VERSION = version;
     }
 
+    public static final String L2TEXT_PLACEHOLDER_CERTIFICATE = "certificate";
+    public static final String L2TEXT_PLACEHOLDER_TIMESTAMP = "timestamp";
+    public static final String L2TEXT_PLACEHOLDER_SIGNER = "signer";
+    public static final String L2TEXT_PLACEHOLDER_LOCATION = "location";
+    public static final String L2TEXT_PLACEHOLDER_REASON = "reason";
+    public static final String L2TEXT_PLACEHOLDER_CONTACT = "contact";
+
+    public static final String L2TEXT_FONT_PATH = "/com/github/intoolswetrust/jsignpdf/pades/fonts/DejaVuSans.ttf";
+
+    public static final String DEFAULT_OUT_SUFFIX = "_signed";
+
 }

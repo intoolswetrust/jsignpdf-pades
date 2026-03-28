@@ -127,7 +127,7 @@ public class Main {
                 String tsaUser = tsaConfig.getTsaUser();
                 String tsaPassword = tsaConfig.getTsaPassword();
                 if (tsaUser != null && tsaPassword != null) {
-                    dataLoader.addAuthentication(null, -1, null, tsaUser, tsaPassword);
+                    dataLoader.addAuthentication(null, -1, null, tsaUser, tsaPassword.toCharArray());
                 } else if (tsaUser != null || tsaPassword != null) {
                     LOGGER.warning("Both TSA username and TSA password has to be provided to be used.");
                 }
@@ -139,7 +139,7 @@ public class Main {
                     }
                     dataLoader.setSslKeystoreType(tsaKsFileType);
                     dataLoader.setSslKeystore(new FileDocument(tsaKsFile));
-                    dataLoader.setSslKeystorePassword(tsaConfig.getTsaPassword());
+                    dataLoader.setSslKeystorePassword(tsaConfig.getTsaPassword() != null ? tsaConfig.getTsaPassword().toCharArray() : null);
                 }
                 onlineTSPSource.setDataLoader(dataLoader); // uses the specific content-type
                 service.setTspSource(onlineTSPSource);

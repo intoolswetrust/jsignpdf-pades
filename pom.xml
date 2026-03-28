@@ -26,10 +26,14 @@
 
         <jsign.pkcs11.version>1.1.0</jsign.pkcs11.version>
         <jcommander.version>1.82</jcommander.version>
+        <bouncycastle18.version>1.80</bouncycastle18.version>
+        <pdfbox.version>2.0.32</pdfbox.version>
+        <commons-lang3.version>3.18.0</commons-lang3.version>
+        <commons-io.version>2.21.0</commons-io.version>
 
         <junit.version>5.9.1</junit.version>
         <hamcrest.version>2.2</hamcrest.version>
-        <dss.version>5.11.1</dss.version>
+        <dss.version>5.13.1</dss.version>
     </properties>
 
     <modules>
@@ -50,6 +54,31 @@
                 <version>${jcommander.version}</version>
             </dependency>
             <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcprov-jdk18on</artifactId>
+                <version>${bouncycastle18.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcpkix-jdk18on</artifactId>
+                <version>${bouncycastle18.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.pdfbox</groupId>
+                <artifactId>pdfbox</artifactId>
+                <version>${pdfbox.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${commons-lang3.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>${commons-io.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter</artifactId>
                 <version>${junit.version}</version>
@@ -62,7 +91,7 @@
 
             <dependency>
                 <groupId>eu.europa.ec.joinup.sd-dss</groupId>
-                <artifactId>sd-dss</artifactId>
+                <artifactId>dss-bom</artifactId>
                 <version>${dss.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
