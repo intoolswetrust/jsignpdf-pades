@@ -35,9 +35,8 @@ public class TimestampSigningTest extends SigningTestBase {
 
     private BasicConfig createTimestampOptions() throws Exception {
         BasicConfig options = createDefaultOptions();
-        options.setTimestamp(true);
-        options.setTsaUrl(tsaServer.getUrl());
-        options.setTsaHashAlg("SHA-256");
+        options.getTsaConfig().setTsaServerUrl(tsaServer.getUrl());
+        options.getTsaConfig().setTsaHashAlgorithm("SHA-256");
         return options;
     }
 
@@ -89,9 +88,8 @@ public class TimestampSigningTest extends SigningTestBase {
 
     private void assertTsaHashAlgorithm(String tsaHashAlg, String expectedOid) throws Exception {
         BasicConfig options = createDefaultOptions();
-        options.setTimestamp(true);
-        options.setTsaUrl(tsaServer.getUrl());
-        options.setTsaHashAlg(tsaHashAlg);
+        options.getTsaConfig().setTsaServerUrl(tsaServer.getUrl());
+        options.getTsaConfig().setTsaHashAlgorithm(tsaHashAlg);
 
         ValidationResult result = signAndValidate(options);
 
@@ -108,12 +106,11 @@ public class TimestampSigningTest extends SigningTestBase {
         authTsa.start();
         try {
             BasicConfig options = createDefaultOptions();
-            options.setTimestamp(true);
-            options.setTsaUrl(authTsa.getUrl());
-            options.setTsaHashAlg("SHA-256");
-            options.setTsaServerAuthn(ServerAuthentication.PASSWORD);
-            options.setTsaUser("tsaUser");
-            options.setTsaPasswd("tsaSecret");
+            options.getTsaConfig().setTsaServerUrl(authTsa.getUrl());
+            options.getTsaConfig().setTsaHashAlgorithm("SHA-256");
+            options.getTsaConfig().setTsaServerAuthn(ServerAuthentication.PASSWORD);
+            options.getTsaConfig().setTsaUser("tsaUser");
+            options.getTsaConfig().setTsaPassword("tsaSecret");
 
             ValidationResult result = signAndValidate(options);
 
@@ -132,14 +129,13 @@ public class TimestampSigningTest extends SigningTestBase {
         authTsa.start();
         try {
             BasicConfig options = createDefaultOptions();
-            options.setTimestamp(true);
-            options.setTsaUrl(authTsa.getUrl());
-            options.setTsaHashAlg("SHA-256");
-            options.setTsaServerAuthn(ServerAuthentication.PASSWORD);
-            options.setTsaUser("tsaUser");
-            options.setTsaPasswd("wrongPassword");
+            options.getTsaConfig().setTsaServerUrl(authTsa.getUrl());
+            options.getTsaConfig().setTsaHashAlgorithm("SHA-256");
+            options.getTsaConfig().setTsaServerAuthn(ServerAuthentication.PASSWORD);
+            options.getTsaConfig().setTsaUser("tsaUser");
+            options.getTsaConfig().setTsaPassword("wrongPassword");
 
-            boolean result = new SignerLogic(options).signFile();
+            boolean result = new SignerLogic(options).signFile(inputFile, outputFile);
             assertFalse(result, "Signing should fail when TSA authentication fails");
         } finally {
             authTsa.stop();

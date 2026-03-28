@@ -3,26 +3,21 @@ package com.github.intoolswetrust.jsignpdf.pades.config;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
-import java.util.logging.Level;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
 import com.beust.jcommander.converters.FileConverter;
 
-import com.github.intoolswetrust.jsignpdf.pades.Constants;
 import com.github.intoolswetrust.jsignpdf.pades.types.CertificationLevel;
 import com.github.intoolswetrust.jsignpdf.pades.types.HashAlgorithm;
 import com.github.intoolswetrust.jsignpdf.pades.types.PDFEncryption;
 import com.github.intoolswetrust.jsignpdf.pades.types.PrintRight;
-import com.github.intoolswetrust.jsignpdf.pades.types.ServerAuthentication;
 
 import eu.europa.esig.dss.enumerations.DigestAlgorithm;
 
-import org.apache.commons.lang3.StringUtils;
-
 public class BasicConfig {
 
+    // Commands
     @Parameter(converter = FileConverter.class, description = "PDF files to be signed")
     private List<File> files = new ArrayList<>();
 
@@ -41,6 +36,7 @@ public class BasicConfig {
     @Parameter(names = { "--list-keys", "-lk" }, description = "Command listing signing key aliases in the specified keystore")
     private boolean listKeys;
 
+    // Keystore
     @Parameter(names = { "--keystore-type", "-kst" }, description = "Keystore type to be loaded")
     private String keyStoreType;
 
@@ -56,22 +52,27 @@ public class BasicConfig {
     @Parameter(names = { "--key-alias", "-ka" }, description = "Key alias to be used for signing")
     private String keyAlias;
 
+    // Signing
     @Parameter(names = { "--pades-level", "-pl" }, description = "PAdES level")
     private PadesLevel padesLevel = PadesLevel.BASELINE_B;
 
+    @Parameter(names = { "--digest-algorithm", "-da" }, description = "Digest algorithm used in the signature")
+    private DigestAlgorithm digestAlgorithm = DigestAlgorithm.SHA256;
+
+    @Parameter(names = { "--hash-algorithm", "-ha" }, description = "Hash algorithm (SHA1, SHA256, SHA384, SHA512, RIPEMD160)")
+    private HashAlgorithm hashAlgorithm;
+
+    @Parameter(names = { "--certification-level", "-cl" }, description = "Certification level")
+    private CertificationLevel certLevel;
+
+    // Output
     @Parameter(names = { "--out-suffix", "-os" }, description = "Signed file suffix to be attached to the original name")
     private String outSuffix = "_signed";
 
-    @Parameter(names = { "--out-directory",
-            "-d" }, description = "Directory to write the signed PDFs to. If not provided, the source directory of input PDF file is used.")
+    @Parameter(names = { "--out-directory", "-d" }, description = "Directory to write the signed PDFs to. If not provided, the source directory of input PDF file is used.")
     private File outDirectory;
 
-    @Parameter(names = { "--out-prefix", "-op" }, description = "Prefix for signed filename")
-    private String outPrefix;
-
-    @Parameter(names = "--out-path", description = "Output directory path for signed documents")
-    private String outPath;
-
+    // Certificate validation
     @Parameter(names = "--disable-validity-check", description = "Don't check certificate validity in the keystore")
     private boolean disableValidityCheck;
 
@@ -80,9 +81,6 @@ public class BasicConfig {
 
     @Parameter(names = "--disable-critical-extensions-check", description = "Don't check if all certificate critical extensions are known")
     private boolean disableCriticalExtensionsCheck;
-
-    @Parameter(names = { "--digest-algorithm", "-da" }, description = "Digest algorithm used in the signature")
-    private DigestAlgorithm digestAlgorithm = DigestAlgorithm.SHA256;
 
     // Signature Metadata
     @Parameter(names = { "--reason", "-r" }, description = "Reason for signature")
@@ -127,19 +125,15 @@ public class BasicConfig {
 
     // Encryption
     @Parameter(names = { "--encryption", "-pe" }, description = "Encryption mode (NONE, PASSWORD)")
-    private String pdfEncryptionCli;
     private PDFEncryption pdfEncryption;
 
     @Parameter(names = { "--owner-password", "-opwd" }, description = "Owner password for encrypted PDF")
-    private String pdfOwnerPwdCli;
-    private char[] pdfOwnerPwd;
+    private String pdfOwnerPwd;
 
     @Parameter(names = { "--user-password", "-upwd" }, description = "User password for encrypted PDF")
-    private String pdfUserPwdCli;
-    private char[] pdfUserPwd;
+    private String pdfUserPwd;
 
     @Parameter(names = { "--print-right", "-pr" }, description = "Printing rights for encrypted PDF")
-    private String rightPrintCli;
     private PrintRight rightPrinting;
 
     @Parameter(names = "--disable-copy", description = "Deny copy in encrypted documents")
@@ -160,111 +154,12 @@ public class BasicConfig {
     @Parameter(names = "--disable-modify-content", description = "Deny modify content in encrypted documents")
     private boolean disableModifyContent;
 
-    private boolean rightCopy = true;
-    private boolean rightAssembly = true;
-    private boolean rightFillIn = true;
-    private boolean rightScreanReaders = true;
-    private boolean rightModifyAnnotations = true;
-    private boolean rightModifyContents = true;
-
-    // Hash and Certification
-    @Parameter(names = { "--hash-algorithm", "-ha" }, description = "Hash algorithm (SHA1, SHA256, SHA384, SHA512, RIPEMD160)")
-    private String hashAlgorithmCli;
-    private HashAlgorithm hashAlgorithm;
-
-    @Parameter(names = { "--certification-level", "-cl" }, description = "Certification level")
-    private String certLevelCli;
-    private CertificationLevel certLevel;
-
-    // TSA enhancements
-    @Parameter(names = { "--tsa-authentication", "-ta" }, description = "TSA auth method (NONE, PASSWORD, CERTIFICATE)")
-    private String tsaAuthnCli;
-    private ServerAuthentication tsaServerAuthn;
-
-    @Parameter(names = { "--tsa-hash-algorithm", "-tsh" }, description = "TSA hash algorithm")
-    private String tsaHashAlg;
-
-    // Programmatic-only fields (not CLI)
-    private String inFile;
-    private String outFile;
-
-    private boolean timestamp;
-
+    // Delegates
     @ParametersDelegate
     private final TsaConfig tsaConfig = new TsaConfig();
 
     @ParametersDelegate
     private final TrustConfig trustConfig = new TrustConfig();
-
-    // ---- postParseCmdLine ----
-
-    public void postParseCmdLine() {
-        if (quiet) {
-            Constants.LOGGER.setLevel(Level.OFF);
-        }
-
-        // Password conversions
-        if (pdfOwnerPwdCli != null)
-            setPdfOwnerPwd(pdfOwnerPwdCli);
-        if (pdfUserPwdCli != null)
-            setPdfUserPwd(pdfUserPwdCli);
-
-        // Enum conversions
-        if (certLevelCli != null)
-            setCertLevel(certLevelCli);
-        if (hashAlgorithmCli != null)
-            setHashAlgorithm(hashAlgorithmCli);
-        if (pdfEncryptionCli != null)
-            setPdfEncryption(pdfEncryptionCli);
-        if (rightPrintCli != null)
-            setRightPrinting(rightPrintCli);
-        if (tsaAuthnCli != null)
-            setTsaServerAuthn(tsaAuthnCli);
-
-        // Rights (disable flags invert to right flags)
-        setRightCopy(!disableCopy);
-        setRightAssembly(!disableAssembly);
-        setRightFillIn(!disableFill);
-        setRightScreanReaders(!disableScreenReaders);
-        setRightModifyAnnotations(!disableModifyAnnotations);
-        setRightModifyContents(!disableModifyContent);
-
-        // TSA
-        String tsaUrl = tsaConfig.getTsaServerUrl();
-        if (tsaUrl != null && !tsaUrl.isEmpty()) {
-            setTimestamp(true);
-        }
-
-        // Set inFile from the first positional argument
-        if (files != null && !files.isEmpty()) {
-            setInFile(files.get(0).getAbsolutePath());
-        }
-    }
-
-    // ---- Convenience methods ----
-
-    private String charArrToStr(final char[] aCharArr) {
-        return aCharArr == null ? "" : new String(aCharArr);
-    }
-
-    public String getEffectiveOutFile() {
-        String tmpOut = StringUtils.defaultIfBlank(outFile, null);
-        if (tmpOut == null) {
-            String tmpExtension = "";
-            String tmpNameBase = StringUtils.defaultIfBlank(getInFile(), null);
-            if (tmpNameBase == null) {
-                tmpOut = "signed.pdf";
-            } else {
-                if (tmpNameBase.toLowerCase().endsWith(".pdf")) {
-                    final int tmpBaseLen = tmpNameBase.length() - 4;
-                    tmpExtension = tmpNameBase.substring(tmpBaseLen);
-                    tmpNameBase = tmpNameBase.substring(0, tmpBaseLen);
-                }
-                tmpOut = tmpNameBase + Constants.DEFAULT_OUT_SUFFIX + tmpExtension;
-            }
-        }
-        return tmpOut;
-    }
 
     // ---- Getters and Setters ----
 
@@ -276,6 +171,26 @@ public class BasicConfig {
         this.files = files;
     }
 
+    public boolean isPrintHelp() {
+        return printHelp;
+    }
+
+    public boolean isPrintVersion() {
+        return printVersion;
+    }
+
+    public boolean isQuiet() {
+        return quiet;
+    }
+
+    public boolean isListKeyStores() {
+        return listKeyStores;
+    }
+
+    public boolean isListKeys() {
+        return listKeys;
+    }
+
     public String getKeyStoreType() {
         return keyStoreType;
     }
@@ -284,29 +199,12 @@ public class BasicConfig {
         this.keyStoreType = keystoreType;
     }
 
-    // Compatibility aliases
-    public String getKsType() {
-        return keyStoreType;
-    }
-
-    public void setKsType(String ksType) {
-        this.keyStoreType = ksType;
-    }
-
     public File getKeyStoreFile() {
         return keyStoreFile;
     }
 
     public void setKeyStoreFile(File keystoreFile) {
         this.keyStoreFile = keystoreFile;
-    }
-
-    public String getKsFile() {
-        return keyStoreFile != null ? keyStoreFile.getAbsolutePath() : null;
-    }
-
-    public void setKsFile(String ksFile) {
-        this.keyStoreFile = ksFile != null ? new File(ksFile) : null;
     }
 
     public String getKeyStorePassword() {
@@ -321,40 +219,16 @@ public class BasicConfig {
         return keyStorePassword == null ? null : keyStorePassword.toCharArray();
     }
 
-    public char[] getKsPasswd() {
-        return keyStorePassword == null ? null : keyStorePassword.toCharArray();
-    }
-
-    public void setKsPasswd(char[] passwd) {
-        this.keyStorePassword = passwd == null ? null : new String(passwd);
-    }
-
     public String getKeyPassword() {
         return keyPassword;
-    }
-
-    public char[] getKeyPasswordAsChars() {
-        return keyPassword == null ? null : keyPassword.toCharArray();
     }
 
     public void setKeyPassword(String keyPassword) {
         this.keyPassword = keyPassword;
     }
 
-    public char[] getKeyPasswd() {
+    public char[] getKeyPasswordAsChars() {
         return keyPassword == null ? null : keyPassword.toCharArray();
-    }
-
-    public char[] getEffectiveKeyPasswd() {
-        char[] kp = getKeyPasswd();
-        if (kp != null && kp.length == 0) {
-            kp = null;
-        }
-        return kp != null ? kp : getKsPasswd();
-    }
-
-    public void setKeyPasswd(char[] keyPasswd) {
-        this.keyPassword = keyPasswd == null ? null : new String(keyPasswd);
     }
 
     public String getKeyAlias() {
@@ -373,44 +247,28 @@ public class BasicConfig {
         this.padesLevel = padesLevel;
     }
 
-    public boolean isPrintHelp() {
-        return printHelp;
+    public DigestAlgorithm getDigestAlgorithm() {
+        return digestAlgorithm;
     }
 
-    public void setPrintHelp(boolean printHelp) {
-        this.printHelp = printHelp;
+    public void setDigestAlgorithm(DigestAlgorithm digestAlgorithm) {
+        this.digestAlgorithm = digestAlgorithm;
     }
 
-    public boolean isPrintVersion() {
-        return printVersion;
+    public HashAlgorithm getHashAlgorithm() {
+        return hashAlgorithm;
     }
 
-    public void setPrintVersion(boolean printVersion) {
-        this.printVersion = printVersion;
+    public void setHashAlgorithm(HashAlgorithm hashAlgorithm) {
+        this.hashAlgorithm = hashAlgorithm;
     }
 
-    public boolean isQuiet() {
-        return quiet;
+    public CertificationLevel getCertLevel() {
+        return certLevel;
     }
 
-    public void setQuiet(boolean quiet) {
-        this.quiet = quiet;
-    }
-
-    public boolean isListKeyStores() {
-        return listKeyStores;
-    }
-
-    public void setListKeyStores(boolean listKeyStores) {
-        this.listKeyStores = listKeyStores;
-    }
-
-    public boolean isListKeys() {
-        return listKeys;
-    }
-
-    public void setListKeys(boolean listKeys) {
-        this.listKeys = listKeys;
+    public void setCertLevel(CertificationLevel certLevel) {
+        this.certLevel = certLevel;
     }
 
     public String getOutSuffix() {
@@ -429,74 +287,17 @@ public class BasicConfig {
         this.outDirectory = outDirectory;
     }
 
-    public String getOutPrefix() {
-        if (outPrefix == null)
-            outPrefix = "";
-        return outPrefix;
-    }
-
-    public void setOutPrefix(String outPrefix) {
-        this.outPrefix = outPrefix;
-    }
-
-    public String getOutPath() {
-        String tmpResult;
-        if (StringUtils.isEmpty(outPath)) {
-            tmpResult = "./";
-        } else {
-            tmpResult = outPath.replaceAll("\\\\", "/");
-            if (!tmpResult.endsWith("/")) {
-                tmpResult = tmpResult + "/";
-            }
-        }
-        return tmpResult;
-    }
-
-    public void setOutPath(String outPath) {
-        this.outPath = outPath;
-    }
-
     public boolean isDisableValidityCheck() {
         return disableValidityCheck;
-    }
-
-    public void setDisableValidityCheck(boolean disableValidityCheck) {
-        this.disableValidityCheck = disableValidityCheck;
     }
 
     public boolean isDisableKeyUsageCheck() {
         return disableKeyUsageCheck;
     }
 
-    public void setDisableKeyUsageCheck(boolean disableKeyUsageCheck) {
-        this.disableKeyUsageCheck = disableKeyUsageCheck;
-    }
-
     public boolean isDisableCriticalExtensionsCheck() {
         return disableCriticalExtensionsCheck;
     }
-
-    public void setDisableCriticalExtensionsCheck(boolean disableCriticalExtensionsCheck) {
-        this.disableCriticalExtensionsCheck = disableCriticalExtensionsCheck;
-    }
-
-    public DigestAlgorithm getDigestAlgorithm() {
-        return digestAlgorithm;
-    }
-
-    public void setDigestAlgorithm(DigestAlgorithm digestAlgorithm) {
-        this.digestAlgorithm = digestAlgorithm;
-    }
-
-    public TsaConfig getTsaConfig() {
-        return tsaConfig;
-    }
-
-    public TrustConfig getTrustConfig() {
-        return trustConfig;
-    }
-
-    // Signature Metadata
 
     public String getReason() {
         return reason;
@@ -529,8 +330,6 @@ public class BasicConfig {
     public void setSignerName(String signerName) {
         this.signerName = signerName;
     }
-
-    // Visible Signature
 
     public boolean isVisible() {
         return visible;
@@ -589,9 +388,6 @@ public class BasicConfig {
     }
 
     public float getL2TextFontSize() {
-        if (l2TextFontSize <= 0f) {
-            l2TextFontSize = 10.0f;
-        }
         return l2TextFontSize;
     }
 
@@ -600,19 +396,14 @@ public class BasicConfig {
     }
 
     public String getBgImgPath() {
-        return StringUtils.defaultIfBlank(bgImgPath, null);
+        return bgImgPath;
     }
 
     public void setBgImgPath(String bgImgPath) {
         this.bgImgPath = bgImgPath;
     }
 
-    // Encryption
-
     public PDFEncryption getPdfEncryption() {
-        if (pdfEncryption == null) {
-            pdfEncryption = PDFEncryption.NONE;
-        }
         return pdfEncryption;
     }
 
@@ -620,54 +411,23 @@ public class BasicConfig {
         this.pdfEncryption = pdfEncryption;
     }
 
-    public void setPdfEncryption(String aValue) {
-        PDFEncryption enumInstance = null;
-        if (aValue != null) {
-            try {
-                enumInstance = PDFEncryption.valueOf(aValue.toUpperCase(Locale.ENGLISH));
-            } catch (Exception e) {
-                // fallback to null
-            }
-        }
-        setPdfEncryption(enumInstance);
-    }
-
-    public char[] getPdfOwnerPwd() {
+    public String getPdfOwnerPwd() {
         return pdfOwnerPwd;
     }
 
-    public String getPdfOwnerPwdStr() {
-        return charArrToStr(pdfOwnerPwd);
-    }
-
-    public void setPdfOwnerPwd(char[] pdfOwnerPwd) {
+    public void setPdfOwnerPwd(String pdfOwnerPwd) {
         this.pdfOwnerPwd = pdfOwnerPwd;
     }
 
-    public void setPdfOwnerPwd(String aPasswd) {
-        setPdfOwnerPwd(aPasswd == null ? null : aPasswd.toCharArray());
-    }
-
-    public char[] getPdfUserPwd() {
+    public String getPdfUserPwd() {
         return pdfUserPwd;
     }
 
-    public String getPdfUserPwdStr() {
-        return charArrToStr(pdfUserPwd);
-    }
-
-    public void setPdfUserPwd(char[] pdfUserPwd) {
+    public void setPdfUserPwd(String pdfUserPwd) {
         this.pdfUserPwd = pdfUserPwd;
     }
 
-    public void setPdfUserPwd(String aPasswd) {
-        setPdfUserPwd(aPasswd == null ? null : aPasswd.toCharArray());
-    }
-
     public PrintRight getRightPrinting() {
-        if (rightPrinting == null) {
-            rightPrinting = PrintRight.ALLOW_PRINTING;
-        }
         return rightPrinting;
     }
 
@@ -675,204 +435,60 @@ public class BasicConfig {
         this.rightPrinting = rightPrinting;
     }
 
-    public void setRightPrinting(String aValue) {
-        PrintRight printRight = null;
-        if (aValue != null) {
-            try {
-                printRight = PrintRight.valueOf(aValue.toUpperCase(Locale.ENGLISH));
-            } catch (Exception e) {
-                // fallback to null
-            }
-        }
-        setRightPrinting(printRight);
+    public boolean isDisableCopy() {
+        return disableCopy;
     }
 
-    public boolean isRightCopy() {
-        return rightCopy;
+    public void setDisableCopy(boolean disableCopy) {
+        this.disableCopy = disableCopy;
     }
 
-    public void setRightCopy(boolean rightCopy) {
-        this.rightCopy = rightCopy;
+    public boolean isDisableAssembly() {
+        return disableAssembly;
     }
 
-    public boolean isRightAssembly() {
-        return rightAssembly;
+    public void setDisableAssembly(boolean disableAssembly) {
+        this.disableAssembly = disableAssembly;
     }
 
-    public void setRightAssembly(boolean rightAssembly) {
-        this.rightAssembly = rightAssembly;
+    public boolean isDisableFill() {
+        return disableFill;
     }
 
-    public boolean isRightFillIn() {
-        return rightFillIn;
+    public void setDisableFill(boolean disableFill) {
+        this.disableFill = disableFill;
     }
 
-    public void setRightFillIn(boolean rightFillIn) {
-        this.rightFillIn = rightFillIn;
+    public boolean isDisableScreenReaders() {
+        return disableScreenReaders;
     }
 
-    public boolean isRightScreanReaders() {
-        return rightScreanReaders;
+    public void setDisableScreenReaders(boolean disableScreenReaders) {
+        this.disableScreenReaders = disableScreenReaders;
     }
 
-    public void setRightScreanReaders(boolean rightScreanReaders) {
-        this.rightScreanReaders = rightScreanReaders;
+    public boolean isDisableModifyAnnotations() {
+        return disableModifyAnnotations;
     }
 
-    public boolean isRightModifyAnnotations() {
-        return rightModifyAnnotations;
+    public void setDisableModifyAnnotations(boolean disableModifyAnnotations) {
+        this.disableModifyAnnotations = disableModifyAnnotations;
     }
 
-    public void setRightModifyAnnotations(boolean rightModifyAnnotations) {
-        this.rightModifyAnnotations = rightModifyAnnotations;
+    public boolean isDisableModifyContent() {
+        return disableModifyContent;
     }
 
-    public boolean isRightModifyContents() {
-        return rightModifyContents;
+    public void setDisableModifyContent(boolean disableModifyContent) {
+        this.disableModifyContent = disableModifyContent;
     }
 
-    public void setRightModifyContents(boolean rightModifyContents) {
-        this.rightModifyContents = rightModifyContents;
+    public TsaConfig getTsaConfig() {
+        return tsaConfig;
     }
 
-    // Hash and Certification
-
-    public HashAlgorithm getHashAlgorithm() {
-        if (hashAlgorithm == null) {
-            hashAlgorithm = HashAlgorithm.SHA256;
-        }
-        return hashAlgorithm;
-    }
-
-    public void setHashAlgorithm(HashAlgorithm hashAlgorithm) {
-        this.hashAlgorithm = hashAlgorithm;
-    }
-
-    public void setHashAlgorithm(String aValue) {
-        HashAlgorithm hashAlg = null;
-        if (StringUtils.isNotEmpty(aValue)) {
-            try {
-                hashAlg = HashAlgorithm.valueOf(aValue.toUpperCase(Locale.ENGLISH));
-            } catch (Exception e) {
-                // fallback to null
-            }
-        }
-        setHashAlgorithm(hashAlg);
-    }
-
-    public CertificationLevel getCertLevel() {
-        if (certLevel == null) {
-            certLevel = CertificationLevel.NOT_CERTIFIED;
-        }
-        return certLevel;
-    }
-
-    public void setCertLevel(CertificationLevel certLevel) {
-        this.certLevel = certLevel;
-    }
-
-    public void setCertLevel(String aValue) {
-        CertificationLevel cl = null;
-        if (aValue != null) {
-            try {
-                cl = CertificationLevel.valueOf(aValue.toUpperCase(Locale.ENGLISH));
-            } catch (Exception e) {
-                // fallback to null
-            }
-        }
-        setCertLevel(cl);
-    }
-
-    // TSA enhancements
-
-    public ServerAuthentication getTsaServerAuthn() {
-        if (tsaServerAuthn == null) {
-            tsaServerAuthn = ServerAuthentication.NONE;
-        }
-        return tsaServerAuthn;
-    }
-
-    public void setTsaServerAuthn(ServerAuthentication tsaServerAuthn) {
-        this.tsaServerAuthn = tsaServerAuthn;
-    }
-
-    public void setTsaServerAuthn(String aValue) {
-        ServerAuthentication enumInstance = null;
-        if (aValue != null) {
-            try {
-                enumInstance = ServerAuthentication.valueOf(aValue.toUpperCase(Locale.ENGLISH));
-            } catch (Exception e) {
-                // fallback to null
-            }
-        }
-        setTsaServerAuthn(enumInstance);
-    }
-
-    public String getTsaHashAlg() {
-        return tsaHashAlg;
-    }
-
-    public void setTsaHashAlg(String tsaHashAlg) {
-        this.tsaHashAlg = tsaHashAlg;
-    }
-
-    // Programmatic fields
-
-    public String getInFile() {
-        return inFile;
-    }
-
-    public void setInFile(String inFile) {
-        this.inFile = inFile;
-    }
-
-    public String getOutFile() {
-        return outFile;
-    }
-
-    public void setOutFile(String outFile) {
-        this.outFile = outFile;
-    }
-
-    public boolean isTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(boolean timestamp) {
-        this.timestamp = timestamp;
-    }
-
-    // TSA convenience methods (delegate to TsaConfig)
-    public void setTsaUrl(String url) {
-        tsaConfig.setTsaServerUrl(url);
-    }
-
-    public String getTsaUrl() {
-        return tsaConfig.getTsaServerUrl();
-    }
-
-    public void setTsaUser(String user) {
-        tsaConfig.setTsaUser(user);
-    }
-
-    public String getTsaUser() {
-        return tsaConfig.getTsaUser();
-    }
-
-    public void setTsaPasswd(String password) {
-        tsaConfig.setTsaPassword(password);
-    }
-
-    public String getTsaPasswd() {
-        return tsaConfig.getTsaPassword();
-    }
-
-    public void setTsaPolicy(String policyOid) {
-        tsaConfig.setTsaPolicyOid(policyOid);
-    }
-
-    public String getTsaPolicy() {
-        return tsaConfig.getTsaPolicyOid();
+    public TrustConfig getTrustConfig() {
+        return trustConfig;
     }
 
 }

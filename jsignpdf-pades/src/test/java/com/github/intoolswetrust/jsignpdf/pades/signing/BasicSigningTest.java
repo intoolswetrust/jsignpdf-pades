@@ -11,7 +11,7 @@ import com.github.intoolswetrust.jsignpdf.pades.SignerLogic;
 import com.github.intoolswetrust.jsignpdf.pades.signing.validation.PdfSignatureValidator.ValidationResult;
 
 /**
- * Basic smoke tests for {@link SignerLogic#signFile()} verifying that the default signing
+ * Basic smoke tests for {@link SignerLogic#signFile(File, File)} verifying that the default signing
  * flow produces a valid PDF with a correct PKCS#7 signature structure.
  */
 public class BasicSigningTest extends SigningTestBase {
@@ -32,11 +32,11 @@ public class BasicSigningTest extends SigningTestBase {
         assertTrue(result.signatureValid, "Signature should be cryptographically valid");
     }
 
-    /** Verifies that {@link SignerLogic#signFile()} returns {@code true} on success. */
+    /** Verifies that {@link SignerLogic#signFile(File, File)} returns {@code true} on success. */
     @Test
     public void testSignFileReturnsTrue() throws Exception {
         BasicConfig options = createDefaultOptions();
-        boolean success = new SignerLogic(options).signFile();
+        boolean success = new SignerLogic(options).signFile(inputFile, outputFile);
         assertTrue(success, "signFile() should return true");
     }
 
@@ -44,13 +44,11 @@ public class BasicSigningTest extends SigningTestBase {
     @Test
     public void testOutputFileIsLargerThanInput() throws Exception {
         BasicConfig options = createDefaultOptions();
-        File inFile = new File(options.getInFile());
-        long inputSize = inFile.length();
+        long inputSize = inputFile.length();
 
-        new SignerLogic(options).signFile();
+        new SignerLogic(options).signFile(inputFile, outputFile);
 
-        File outFile = new File(options.getEffectiveOutFile());
-        assertTrue(outFile.exists(), "Output file should exist");
-        assertTrue(outFile.length() > inputSize, "Output should be larger than input");
+        assertTrue(outputFile.exists(), "Output file should exist");
+        assertTrue(outputFile.length() > inputSize, "Output should be larger than input");
     }
 }

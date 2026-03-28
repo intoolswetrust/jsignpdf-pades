@@ -25,21 +25,17 @@ public class MultipleSignaturesTest extends SigningTestBase {
     public void testDoubleSign() throws Exception {
         // First signing
         BasicConfig options1 = createDefaultOptions();
-        boolean success1 = new SignerLogic(options1).signFile();
+        boolean success1 = new SignerLogic(options1).signFile(inputFile, outputFile);
         assertTrue(success1, "First signing should succeed");
-
-        File firstSigned = new File(options1.getEffectiveOutFile());
 
         // Second signing: use the first output as input
         File secondInput = new File(tempDir.toFile(), "second_input.pdf");
-        Files.copy(firstSigned.toPath(), secondInput.toPath());
+        Files.copy(outputFile.toPath(), secondInput.toPath());
         File secondOutput = new File(tempDir.toFile(), "second_output.pdf");
 
         BasicConfig options2 = TestPrivateKey.RSA4096.toSignerOptions(Keystore.JKS);
-        options2.setInFile(secondInput.getAbsolutePath());
-        options2.setOutFile(secondOutput.getAbsolutePath());
 
-        boolean success2 = new SignerLogic(options2).signFile();
+        boolean success2 = new SignerLogic(options2).signFile(secondInput, secondOutput);
         assertTrue(success2, "Second signing should succeed");
 
         // Validate both signatures

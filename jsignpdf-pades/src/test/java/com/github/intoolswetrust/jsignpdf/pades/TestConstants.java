@@ -73,11 +73,11 @@ public class TestConstants {
 
         public BasicConfig toSignerOptions(final Keystore aKeystore) {
             final BasicConfig options = new BasicConfig();
-            options.setKsType(aKeystore.getKsType());
-            options.setKsFile(aKeystore.getKsFile());
-            options.setKsPasswd(aKeystore.getPasswd());
+            options.setKeyStoreType(aKeystore.getKsType());
+            options.setKeyStoreFile(new File(aKeystore.getKsFile()));
+            options.setKeyStorePassword(new String(aKeystore.getPasswd()));
             options.setKeyAlias(getAlias());
-            options.setKeyPasswd(getPasswd());
+            options.setKeyPassword(new String(getPasswd()));
             return options;
 
         }

@@ -34,6 +34,9 @@ public abstract class SigningTestBase {
     @TempDir
     Path tempDir;
 
+    protected File inputFile;
+    protected File outputFile;
+
     /**
      * Registers the BouncyCastle provider and generates a minimal unsigned PDF 1.7 for use
      * as signing input across all tests.
@@ -63,14 +66,10 @@ public abstract class SigningTestBase {
      * for the given key and keystore.
      */
     protected BasicConfig createOptions(TestPrivateKey key, Keystore keystore) throws Exception {
-        File inFile = new File(tempDir.toFile(), "input.pdf");
-        Files.copy(unsignedPdf.toPath(), inFile.toPath());
-        File outFile = new File(tempDir.toFile(), "output.pdf");
-
-        BasicConfig options = key.toSignerOptions(keystore);
-        options.setInFile(inFile.getAbsolutePath());
-        options.setOutFile(outFile.getAbsolutePath());
-        return options;
+        inputFile = new File(tempDir.toFile(), "input.pdf");
+        Files.copy(unsignedPdf.toPath(), inputFile.toPath());
+        outputFile = new File(tempDir.toFile(), "output.pdf");
+        return key.toSignerOptions(keystore);
     }
 
     /** Creates signing options using the default key (RSA2048) and keystore (JKS). */
@@ -83,11 +82,10 @@ public abstract class SigningTestBase {
      * {@link PdfSignatureValidator} validation result.
      */
     protected ValidationResult signAndValidate(BasicConfig options) throws Exception {
-        boolean result = new SignerLogic(options).signFile();
+        boolean result = new SignerLogic(options).signFile(inputFile, outputFile);
         assertTrue(result, "Signing should succeed");
-        File outFile = new File(options.getEffectiveOutFile());
-        assertTrue(outFile.exists(), "Output file should exist");
-        return PdfSignatureValidator.validate(outFile);
+        assertTrue(outputFile.exists(), "Output file should exist");
+        return PdfSignatureValidator.validate(outputFile);
     }
 
     protected File getUnsignedPdf() {

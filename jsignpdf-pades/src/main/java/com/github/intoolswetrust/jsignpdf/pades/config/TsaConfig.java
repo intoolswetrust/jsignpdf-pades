@@ -5,10 +5,15 @@ import java.io.File;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.converters.FileConverter;
 
+import com.github.intoolswetrust.jsignpdf.pades.types.ServerAuthentication;
+
 public class TsaConfig {
 
     @Parameter(names = {"--tsa-server-url", "-ts"}, description = "Timestamp server URL")
     private String tsaServerUrl;
+
+    @Parameter(names = {"--tsa-authentication", "-ta"}, description = "TSA authentication method (NONE, PASSWORD, CERTIFICATE)")
+    private ServerAuthentication tsaServerAuthn;
 
     @Parameter(names = {"--tsa-key-file-type", "-tskt"}, description = "KeyStore type for TSA client-certificate authentication")
     private String tsaKeyStoreFileType;
@@ -23,6 +28,8 @@ public class TsaConfig {
     private String tsaPassword;
     @Parameter(names = {"--tsa-policy-oid"}, description = "TSA policy OID")
     private String tsaPolicyOid;
+    @Parameter(names = {"--tsa-hash-algorithm", "-tsh"}, description = "TSA hash algorithm")
+    private String tsaHashAlgorithm;
 
     public String getTsaServerUrl() {
         return tsaServerUrl;
@@ -78,5 +85,21 @@ public class TsaConfig {
 
     public void setTsaPolicyOid(String tsaPolicyOid) {
         this.tsaPolicyOid = tsaPolicyOid;
+    }
+
+    public String getTsaHashAlgorithm() {
+        return tsaHashAlgorithm;
+    }
+
+    public void setTsaHashAlgorithm(String tsaHashAlgorithm) {
+        this.tsaHashAlgorithm = tsaHashAlgorithm;
+    }
+
+    public ServerAuthentication getTsaServerAuthn() {
+        return tsaServerAuthn;
+    }
+
+    public void setTsaServerAuthn(ServerAuthentication tsaServerAuthn) {
+        this.tsaServerAuthn = tsaServerAuthn;
     }
 }

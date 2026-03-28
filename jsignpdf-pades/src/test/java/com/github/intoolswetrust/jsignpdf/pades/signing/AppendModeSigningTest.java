@@ -23,14 +23,12 @@ public class AppendModeSigningTest extends SigningTestBase {
     public void testAppendPreservesOriginalBytes() throws Exception {
         BasicConfig options = createDefaultOptions();
 
-        File inFile = new File(options.getInFile());
-        byte[] originalBytes = Files.readAllBytes(inFile.toPath());
+        byte[] originalBytes = Files.readAllBytes(inputFile.toPath());
 
-        boolean success = new SignerLogic(options).signFile();
+        boolean success = new SignerLogic(options).signFile(inputFile, outputFile);
         assertTrue(success, "Signing should succeed");
 
-        File outFile = new File(options.getEffectiveOutFile());
-        byte[] signedBytes = Files.readAllBytes(outFile.toPath());
+        byte[] signedBytes = Files.readAllBytes(outputFile.toPath());
 
         assertTrue(signedBytes.length > originalBytes.length, "Signed file should be larger than original");
 

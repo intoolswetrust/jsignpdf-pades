@@ -34,6 +34,7 @@ import org.apache.pdfbox.pdmodel.encryption.AccessPermission;
 import org.apache.pdfbox.pdmodel.encryption.StandardProtectionPolicy;
 
 import com.github.intoolswetrust.jsignpdf.pades.config.BasicConfig;
+import com.github.intoolswetrust.jsignpdf.pades.config.TsaConfig;
 import com.github.intoolswetrust.jsignpdf.pades.types.CertificationLevel;
 import com.github.intoolswetrust.jsignpdf.pades.types.HashAlgorithm;
 import com.github.intoolswetrust.jsignpdf.pades.types.PDFEncryption;
@@ -62,10 +63,8 @@ import eu.europa.esig.dss.validation.CommonCertificateVerifier;
 
 /**
  * Main logic of signer application. It uses DSS PAdES for creating signatures in PDF.
- *
- * @author Josef Cacek
  */
-public class SignerLogic implements Runnable {
+public class SignerLogic {
 
     private final BasicConfig options;
 
@@ -76,19 +75,15 @@ public class SignerLogic implements Runnable {
         options = anOptions;
     }
 
-    @Override
-    public void run() {
-        signFile();
-    }
-
     /**
      * Signs a single file.
      *
+     * @param inFile  input PDF file
+     * @param outFile output PDF file
      * @return true when signing is finished successfully, false otherwise
      */
-    public boolean signFile() {
-        final String outFile = options.getEffectiveOutFile();
-        if (!validateInOutFiles(options.getInFile(), outFile)) {
+    public boolean signFile(File inFile, File outFile) {
+        if (!validateInOutFiles(inFile, outFile)) {
             LOGGER.info("Skipping signing.");
             return false;
         }
@@ -97,13 +92,12 @@ public class SignerLogic implements Runnable {
         File encryptedTempFile = null;
         try {
             final KeyStore ks = KeyStoreUtils.loadKeyStore(
-                    options.getKsType(),
+                    options.getKeyStoreType(),
                     options.getKeyStoreFile(),
                     options.getKeyStorePassword());
 
             String alias = options.getKeyAlias();
             if (StringUtils.isEmpty(alias)) {
-                // use first key alias
                 java.util.Enumeration<String> aliases = ks.aliases();
                 while (aliases.hasMoreElements()) {
                     String a = aliases.nextElement();
@@ -114,7 +108,10 @@ public class SignerLogic implements Runnable {
                 }
             }
 
-            char[] keyPasswd = options.getEffectiveKeyPasswd();
+            char[] keyPasswd = options.getKeyPasswordAsChars();
+            if (keyPasswd == null || keyPasswd.length == 0) {
+                keyPasswd = options.getKeyStorePasswordAsChars();
+            }
             PrivateKey key = (PrivateKey) ks.getKey(alias, keyPasswd);
             Certificate[] chain = ks.getCertificateChain(alias);
 
@@ -123,30 +120,29 @@ public class SignerLogic implements Runnable {
                 return false;
             }
 
-            // Create DSS token from the existing key + chain
             PrivateKeySignatureToken token = new PrivateKeySignatureToken(key, chain);
             DSSPrivateKeyEntry keyEntry = token.getKeyEntry();
 
-            // Build PAdES signature parameters
             PAdESSignatureParameters parameters = new PAdESSignatureParameters();
 
-            final HashAlgorithm hashAlgorithm = options.getHashAlgorithm();
-            DigestAlgorithm digestAlgorithm = hashAlgorithm.toDssDigestAlgorithm();
+            HashAlgorithm hashAlgorithm = options.getHashAlgorithm();
+            DigestAlgorithm digestAlgorithm = hashAlgorithm != null
+                    ? hashAlgorithm.toDssDigestAlgorithm()
+                    : options.getDigestAlgorithm();
 
             parameters.setDigestAlgorithm(digestAlgorithm);
             parameters.setSigningCertificate(keyEntry.getCertificate());
             parameters.setCertificateChain(keyEntry.getCertificateChain());
 
-            // Signature level: use PAdES level from config, or BASELINE_T if TSA is configured
-            String tsaUrl = options.getTsaConfig().getTsaServerUrl();
-            boolean useTsa = options.isTimestamp() && StringUtils.isNotEmpty(tsaUrl);
+            TsaConfig tsaConfig = options.getTsaConfig();
+            String tsaUrl = tsaConfig.getTsaServerUrl();
+            boolean useTsa = StringUtils.isNotEmpty(tsaUrl);
             if (useTsa) {
                 parameters.setSignatureLevel(SignatureLevel.PAdES_BASELINE_T);
             } else {
                 parameters.setSignatureLevel(options.getPadesLevel().getSignatureLevel());
             }
 
-            // Signing date
             Calendar signingCal = Calendar.getInstance();
             parameters.bLevel().setSigningDate(signingCal.getTime());
 
@@ -169,84 +165,80 @@ public class SignerLogic implements Runnable {
 
             // Certification level
             LOGGER.info("Setting certification level.");
-            CertificationPermission permission = options.getCertLevel().toDssCertificationPermission();
-            if (permission != null) {
-                parameters.setPermission(permission);
+            CertificationLevel certLevel = options.getCertLevel();
+            if (certLevel != null) {
+                CertificationPermission permission = certLevel.toDssCertificationPermission();
+                if (permission != null) {
+                    parameters.setPermission(permission);
+                }
             }
 
             // Password for encrypted PDFs
-            String ownerPwd = options.getPdfOwnerPwdStr();
+            String ownerPwd = options.getPdfOwnerPwd();
             if (StringUtils.isNotEmpty(ownerPwd)) {
                 parameters.setPasswordProtection(ownerPwd.toCharArray());
             }
 
-            // Signature size estimation
             parameters.setContentSize(30000);
 
             // Encrypt PDF if requested (encrypt-before-sign)
-            final PDFEncryption pdfEncryption = options.getPdfEncryption();
+            PDFEncryption pdfEncryption = options.getPdfEncryption();
             if (pdfEncryption == PDFEncryption.PASSWORD) {
                 LOGGER.info("Setting encryption.");
-                encryptedTempFile = encryptPdf(options, pdfEncryption);
+                encryptedTempFile = encryptPdf(inFile);
                 if (encryptedTempFile == null) {
                     return false;
                 }
-                String encOwnerPwd = options.getPdfOwnerPwdStr();
-                if (StringUtils.isNotEmpty(encOwnerPwd)) {
-                    parameters.setPasswordProtection(encOwnerPwd.toCharArray());
+                if (StringUtils.isNotEmpty(ownerPwd)) {
+                    parameters.setPasswordProtection(ownerPwd.toCharArray());
                 }
             }
 
             // Load input document
             DSSDocument document = new FileDocument(
-                    encryptedTempFile != null ? encryptedTempFile.getAbsolutePath() : options.getInFile());
+                    encryptedTempFile != null ? encryptedTempFile : inFile);
 
             // Handle visible signature
             if (options.isVisible()) {
                 LOGGER.info("Configuring visible signature.");
-                configureVisibleSignature(parameters, chain, signingCal);
+                configureVisibleSignature(parameters, chain, signingCal, inFile);
             }
 
-            // Create certificate verifier
             CommonCertificateVerifier verifier = new CommonCertificateVerifier();
-
-            // Create PAdES service
             PAdESService service = new PAdESService(verifier);
 
             // Configure TSA
             if (useTsa) {
                 LOGGER.info("Creating TSA client.");
                 TimestampDataLoader tsDataLoader = new TimestampDataLoader();
-                if (options.getTsaServerAuthn() == ServerAuthentication.PASSWORD) {
+                if (tsaConfig.getTsaServerAuthn() == ServerAuthentication.PASSWORD) {
                     URI tsaUri = URI.create(tsaUrl);
-                    String tsaUser = options.getTsaConfig().getTsaUser();
-                    String tsaPassword = options.getTsaConfig().getTsaPassword();
+                    String tsaUser = tsaConfig.getTsaUser();
+                    String tsaPassword = tsaConfig.getTsaPassword();
                     tsDataLoader.addAuthentication(tsaUri.getHost(), tsaUri.getPort(), null, tsaUser,
                             tsaPassword != null ? tsaPassword.toCharArray() : null);
                 }
                 OnlineTSPSource tspSource = new OnlineTSPSource(tsaUrl, tsDataLoader);
 
-                final String policyOid = options.getTsaConfig().getTsaPolicyOid();
+                final String policyOid = tsaConfig.getTsaPolicyOid();
                 if (StringUtils.isNotEmpty(policyOid)) {
                     LOGGER.info("Setting TSA policy: " + policyOid);
                     tspSource.setPolicyOid(policyOid);
                 }
-                if (StringUtils.isNotEmpty(options.getTsaHashAlg())) {
+                String tsaHashAlg = tsaConfig.getTsaHashAlgorithm();
+                if (StringUtils.isNotEmpty(tsaHashAlg)) {
                     parameters.getSignatureTimestampParameters()
-                            .setDigestAlgorithm(DigestAlgorithm.forJavaName(options.getTsaHashAlg()));
+                            .setDigestAlgorithm(DigestAlgorithm.forJavaName(tsaHashAlg));
                 }
                 service.setTspSource(tspSource);
             }
 
             LOGGER.info("Processing signature.");
-
-            // 3-step DSS signing
             LOGGER.info("Creating signature.");
             ToBeSigned dataToSign = service.getDataToSign(document, parameters);
             SignatureValue signatureValue = token.sign(dataToSign, digestAlgorithm, keyEntry);
             DSSDocument signedDocument = service.signDocument(document, parameters, signatureValue);
 
-            // Write output
             LOGGER.info("Creating output PDF: " + outFile);
             try (FileOutputStream fos = new FileOutputStream(outFile)) {
                 signedDocument.writeTo(fos);
@@ -267,32 +259,34 @@ public class SignerLogic implements Runnable {
         return finished;
     }
 
-    private AccessPermission buildAccessPermission(BasicConfig options) {
+    private AccessPermission buildAccessPermission() {
         AccessPermission ap = new AccessPermission();
         PrintRight printing = options.getRightPrinting();
+        if (printing == null) {
+            printing = PrintRight.ALLOW_PRINTING;
+        }
         ap.setCanPrint(printing == PrintRight.ALLOW_PRINTING);
         ap.setCanPrintDegraded(printing != PrintRight.DISALLOW_PRINTING);
-        ap.setCanExtractContent(options.isRightCopy());
-        ap.setCanAssembleDocument(options.isRightAssembly());
-        ap.setCanFillInForm(options.isRightFillIn());
-        ap.setCanExtractForAccessibility(options.isRightScreanReaders());
-        ap.setCanModifyAnnotations(options.isRightModifyAnnotations());
-        ap.setCanModify(options.isRightModifyContents());
+        ap.setCanExtractContent(!options.isDisableCopy());
+        ap.setCanAssembleDocument(!options.isDisableAssembly());
+        ap.setCanFillInForm(!options.isDisableFill());
+        ap.setCanExtractForAccessibility(!options.isDisableScreenReaders());
+        ap.setCanModifyAnnotations(!options.isDisableModifyAnnotations());
+        ap.setCanModify(!options.isDisableModifyContent());
         return ap;
     }
 
-    private File encryptPdf(BasicConfig options, PDFEncryption pdfEncryption) throws Exception {
-        File inFile = new File(options.getInFile());
-
+    private File encryptPdf(File inFile) throws Exception {
         try (PDDocument doc = PDDocument.load(inFile)) {
             if (!doc.getSignatureDictionaries().isEmpty()) {
                 LOGGER.info("Cannot encrypt PDF with existing signatures.");
                 return null;
             }
 
-            AccessPermission ap = buildAccessPermission(options);
+            AccessPermission ap = buildAccessPermission();
             StandardProtectionPolicy passwordPolicy = new StandardProtectionPolicy(
-                    options.getPdfOwnerPwdStr(), options.getPdfUserPwdStr(), ap);
+                    StringUtils.defaultString(options.getPdfOwnerPwd()),
+                    StringUtils.defaultString(options.getPdfUserPwd()), ap);
             passwordPolicy.setEncryptionKeyLength(128);
             doc.protect(passwordPolicy);
 
@@ -304,15 +298,14 @@ public class SignerLogic implements Runnable {
     }
 
     private void configureVisibleSignature(PAdESSignatureParameters parameters,
-            Certificate[] chain, Calendar signingCal) throws Exception {
+            Certificate[] chain, Calendar signingCal, File inFile) throws Exception {
 
         SignatureImageParameters imageParams = new SignatureImageParameters();
 
-        // Determine page and page dimensions
         int page = options.getPage();
         float pageWidth;
         float pageHeight;
-        try (PDDocument pdDoc = PDDocument.load(new File(options.getInFile()))) {
+        try (PDDocument pdDoc = PDDocument.load(inFile)) {
             int totalPages = pdDoc.getNumberOfPages();
             if (page < 1 || page > totalPages) {
                 page = totalPages;
@@ -329,7 +322,6 @@ public class SignerLogic implements Runnable {
             }
         }
 
-        // Field position parameters
         float llx = fixPosition(options.getPositionLLX(), pageWidth);
         float lly = fixPosition(options.getPositionLLY(), pageHeight);
         float urx = fixPosition(options.getPositionURX(), pageWidth);
@@ -340,12 +332,11 @@ public class SignerLogic implements Runnable {
         SignatureFieldParameters fieldParams = new SignatureFieldParameters();
         fieldParams.setPage(page);
         fieldParams.setOriginX(llx);
-        fieldParams.setOriginY(pageHeight - ury); // flip Y axis
+        fieldParams.setOriginY(pageHeight - ury);
         fieldParams.setWidth(width);
         fieldParams.setHeight(height);
         imageParams.setFieldParameters(fieldParams);
 
-        // Build L2 text
         LOGGER.info("Setting L2 text.");
         X509Certificate signerCert = (X509Certificate) chain[0];
         String signer = extractCN(signerCert);
@@ -379,14 +370,17 @@ public class SignerLogic implements Runnable {
         SignatureImageTextParameters textParams = new SignatureImageTextParameters();
         textParams.setText(l2text);
 
+        float fontSize = options.getL2TextFontSize();
+        if (fontSize <= 0f) {
+            fontSize = 10.0f;
+        }
         DSSFont font = FontUtils.getL2BaseFont();
         if (font != null) {
-            font.setSize(options.getL2TextFontSize());
+            font.setSize(fontSize);
             textParams.setFont(font);
         }
         imageParams.setTextParameters(textParams);
 
-        // Background image
         final String bgImgPath = options.getBgImgPath();
         if (bgImgPath != null) {
             LOGGER.info("Setting background image: " + bgImgPath);
@@ -416,19 +410,17 @@ public class SignerLogic implements Runnable {
         return origPos >= 0 ? origPos : base + origPos;
     }
 
-    private boolean validateInOutFiles(final String inFile, final String outFile) {
+    private boolean validateInOutFiles(File inFile, File outFile) {
         LOGGER.info("Validating input/output files.");
-        if (StringUtils.isEmpty(inFile) || StringUtils.isEmpty(outFile)) {
+        if (inFile == null || outFile == null) {
             LOGGER.info("Input or output file is not specified.");
             return false;
         }
-        final File tmpInFile = new File(inFile);
-        final File tmpOutFile = new File(outFile);
-        if (!(tmpInFile.exists() && tmpInFile.isFile() && tmpInFile.canRead())) {
+        if (!(inFile.exists() && inFile.isFile() && inFile.canRead())) {
             LOGGER.info("Input file not found or not readable: " + inFile);
             return false;
         }
-        if (tmpInFile.getAbsolutePath().equals(tmpOutFile.getAbsolutePath())) {
+        if (inFile.getAbsolutePath().equals(outFile.getAbsolutePath())) {
             LOGGER.info("Input and output files are the same.");
             return false;
         }
