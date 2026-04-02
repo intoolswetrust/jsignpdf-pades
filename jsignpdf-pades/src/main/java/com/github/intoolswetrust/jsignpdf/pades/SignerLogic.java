@@ -35,6 +35,7 @@ import org.apache.pdfbox.pdmodel.encryption.AccessPermission;
 import org.apache.pdfbox.pdmodel.encryption.StandardProtectionPolicy;
 
 import com.github.intoolswetrust.jsignpdf.pades.config.BasicConfig;
+import com.github.intoolswetrust.jsignpdf.pades.config.PadesLevel;
 import com.github.intoolswetrust.jsignpdf.pades.config.TsaConfig;
 import com.github.intoolswetrust.jsignpdf.pades.types.CertificationLevel;
 import com.github.intoolswetrust.jsignpdf.pades.types.HashAlgorithm;
@@ -139,10 +140,13 @@ public class SignerLogic {
             TsaConfig tsaConfig = options.getTsaConfig();
             String tsaUrl = tsaConfig.getTsaServerUrl();
             boolean useTsa = StringUtils.isNotEmpty(tsaUrl);
-            if (useTsa) {
+            PadesLevel padesLevel = options.getPadesLevel();
+            if (useTsa && padesLevel == PadesLevel.BASELINE_B) {
+                LOGGER.info(
+                        "Timestamping is used, changing PadesLevel " + PadesLevel.BASELINE_B + "->" + PadesLevel.BASELINE_T);
                 parameters.setSignatureLevel(SignatureLevel.PAdES_BASELINE_T);
             } else {
-                parameters.setSignatureLevel(options.getPadesLevel().getSignatureLevel());
+                parameters.setSignatureLevel(padesLevel.getSignatureLevel());
             }
 
             Calendar signingCal = Calendar.getInstance();
