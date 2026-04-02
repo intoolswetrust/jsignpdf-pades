@@ -253,8 +253,6 @@ public class SignerLogic {
             finished = true;
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Exception during signing.", e);
-        } catch (OutOfMemoryError e) {
-            LOGGER.log(Level.SEVERE, "Out of memory error.", e);
         } finally {
             if (encryptedTempFile != null) {
                 encryptedTempFile.delete();
