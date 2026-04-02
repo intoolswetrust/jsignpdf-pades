@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.Security;
@@ -178,5 +180,74 @@ public class SignatureValidatorTest {
                 result.getSimpleReport().getFirstSignatureId());
         assertNotNull(signedBy, "Signer identity should be present");
         assertTrue(signedBy.length() > 0, "Signer identity should not be empty");
+    }
+
+    @Test
+    void testValidateRandomBytesThrows() throws Exception {
+        File corrupt = new File(tempDir.toFile(), "random.pdf");
+        try (FileOutputStream fos = new FileOutputStream(corrupt)) {
+            fos.write(new byte[] { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 });
+        }
+
+        SignatureValidator validator = new SignatureValidator(createConfig());
+        assertThrows(Exception.class, () -> validator.validate(corrupt),
+                "Validating random bytes should throw");
+    }
+
+    @Test
+    void testValidateEmptyFileThrows() throws Exception {
+        File empty = new File(tempDir.toFile(), "empty.pdf");
+        empty.createNewFile();
+
+        SignatureValidator validator = new SignatureValidator(createConfig());
+        assertThrows(Exception.class, () -> validator.validate(empty),
+                "Validating an empty file should throw");
+    }
+
+    @Test
+    void testValidateTruncatedPdfThrows() throws Exception {
+        File truncated = new File(tempDir.toFile(), "truncated.pdf");
+        try (FileOutputStream fos = new FileOutputStream(truncated)) {
+            fos.write("%PDF-1.7\n".getBytes(StandardCharsets.US_ASCII));
+        }
+
+        SignatureValidator validator = new SignatureValidator(createConfig());
+        assertThrows(Exception.class, () -> validator.validate(truncated),
+                "Validating a truncated PDF should throw");
+    }
+
+    @Test
+    void testValidateTextFileThrows() throws Exception {
+        File textFile = new File(tempDir.toFile(), "notapdf.pdf");
+        try (FileOutputStream fos = new FileOutputStream(textFile)) {
+            fos.write("This is not a PDF file.".getBytes(StandardCharsets.UTF_8));
+        }
+
+        SignatureValidator validator = new SignatureValidator(createConfig());
+        assertThrows(Exception.class, () -> validator.validate(textFile),
+                "Validating a text file should throw");
+    }
+
+    @Test
+    void testValidateSignedPdfWithTamperedContent() throws Exception {
+        File unsigned = createUnsignedPdf();
+        File signed = signPdf(unsigned, SignatureLevel.PAdES_BASELINE_B);
+
+        // Tamper: flip a byte near the end of the file (in the signed content area)
+        byte[] bytes = Files.readAllBytes(signed.toPath());
+        if (bytes.length > 200) {
+            bytes[bytes.length - 100] ^= 0xFF;
+        }
+        File tampered = new File(tempDir.toFile(), "tampered.pdf");
+        Files.write(tampered.toPath(), bytes);
+
+        SignatureValidator validator = new SignatureValidator(createConfig());
+        // Tampered PDF may fail to parse or report invalid signatures
+        try {
+            ValidationResult result = validator.validate(tampered);
+            assertFalse(result.isAllValid(), "Tampered PDF should not validate as all-valid");
+        } catch (Exception e) {
+            // Also acceptable — tampered PDF may not parse at all
+        }
     }
 }
