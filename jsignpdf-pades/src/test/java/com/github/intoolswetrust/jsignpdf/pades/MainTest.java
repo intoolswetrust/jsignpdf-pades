@@ -117,8 +117,8 @@ public class MainTest {
         BasicConfig config = new BasicConfig();
         Pkcs11Config p11config = new Pkcs11Config();
         JCommander jcmd = JCommander.newBuilder().addObject(new Object[]{config, p11config}).build();
-        jcmd.parse("-pe", "PASSWORD", "-opwd", "owner", "-upwd", "user", "dummy.pdf");
-        assertEquals(com.github.intoolswetrust.jsignpdf.pades.types.PDFEncryption.PASSWORD, config.getPdfEncryption());
+        jcmd.parse("--encrypt-before-sign", "-opwd", "owner", "-upwd", "user", "dummy.pdf");
+        assertTrue(config.isEncryptBeforeSign());
         assertEquals("owner", config.getPdfOwnerPwd());
         assertEquals("user", config.getPdfUserPwd());
     }

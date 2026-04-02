@@ -38,7 +38,7 @@ import com.github.intoolswetrust.jsignpdf.pades.config.BasicConfig;
 import com.github.intoolswetrust.jsignpdf.pades.config.PadesLevel;
 import com.github.intoolswetrust.jsignpdf.pades.config.TsaConfig;
 import com.github.intoolswetrust.jsignpdf.pades.types.CertificationLevel;
-import com.github.intoolswetrust.jsignpdf.pades.types.PDFEncryption;
+
 import com.github.intoolswetrust.jsignpdf.pades.types.PrintRight;
 import com.github.intoolswetrust.jsignpdf.pades.types.ServerAuthentication;
 import com.github.intoolswetrust.jsignpdf.pades.utils.FontUtils;
@@ -184,8 +184,7 @@ public class SignerLogic {
             parameters.setContentSize(30000);
 
             // Encrypt PDF if requested (encrypt-before-sign)
-            PDFEncryption pdfEncryption = options.getPdfEncryption();
-            if (pdfEncryption == PDFEncryption.PASSWORD) {
+            if (options.isEncryptBeforeSign()) {
                 LOGGER.info("Setting encryption.");
                 encryptedTempFile = encryptPdf(inFile);
                 if (encryptedTempFile == null) {

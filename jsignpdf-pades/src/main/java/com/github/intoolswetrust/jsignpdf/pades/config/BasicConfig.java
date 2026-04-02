@@ -9,7 +9,7 @@ import com.beust.jcommander.ParametersDelegate;
 import com.beust.jcommander.converters.FileConverter;
 
 import com.github.intoolswetrust.jsignpdf.pades.types.CertificationLevel;
-import com.github.intoolswetrust.jsignpdf.pades.types.PDFEncryption;
+
 import com.github.intoolswetrust.jsignpdf.pades.types.PrintRight;
 
 import eu.europa.esig.dss.enumerations.DigestAlgorithm;
@@ -127,8 +127,8 @@ public class BasicConfig {
     private String bgImgPath;
 
     // Encryption
-    @Parameter(names = { "--encryption", "-pe" }, description = "Encryption mode (NONE, PASSWORD)")
-    private PDFEncryption pdfEncryption;
+    @Parameter(names = { "--encrypt-before-sign" }, description = "Encrypt PDF with password before signing")
+    private boolean encryptBeforeSign;
 
     @Parameter(names = { "--owner-password", "-opwd" }, description = "Owner password for encrypted PDF")
     private String pdfOwnerPwd;
@@ -414,12 +414,12 @@ public class BasicConfig {
         this.bgImgPath = bgImgPath;
     }
 
-    public PDFEncryption getPdfEncryption() {
-        return pdfEncryption;
+    public boolean isEncryptBeforeSign() {
+        return encryptBeforeSign;
     }
 
-    public void setPdfEncryption(PDFEncryption pdfEncryption) {
-        this.pdfEncryption = pdfEncryption;
+    public void setEncryptBeforeSign(boolean encryptBeforeSign) {
+        this.encryptBeforeSign = encryptBeforeSign;
     }
 
     public String getPdfOwnerPwd() {

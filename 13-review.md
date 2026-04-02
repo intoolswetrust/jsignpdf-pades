@@ -11,38 +11,13 @@
 
 ## 2. Bugs and Logic Errors
 
-### [HIGH] LOTL sources never added to list
-
-`TrustedCertSourcesProvider.java:72-77`:
-```java
-for (String url : trustConfig.getLotlUrls()) {
-    LOTLSource lotlSource = new LOTLSource();
-    lotlSource.setUrl(url);
-    lotlSource.setCertificateSource(new CommonCertificateSource());
-    // missing: lotlSources.add(lotlSource);
-}
-```
-Custom LOTL URLs are created but **never added** to the `lotlSources` list. The `--trust-lotl-url` feature is completely broken.
-
 ### [MEDIUM] EU LOTL flag is a no-op in validator
 
 `SignatureValidator.java:59-61` -- When `--trust-use-default-lotl` is set, it only logs a message but never actually loads the EU LOTL. The validator's `configureTrust()` does nothing with LOTL URLs either.
 
-### [MEDIUM] Duplicate import in Main.java
-
-`Main.java:11-12` -- `import org.apache.commons.lang3.StringUtils;` appears twice.
-
-### [MEDIUM] Deprecated API usage
-
-`SignerLogic.java:29` -- `org.apache.commons.lang3.text.StrSubstitutor` is deprecated since commons-lang3 3.6. Should use `org.apache.commons.text.StringSubstitutor` from `commons-text`.
-
 ### [LOW] Exit code not set on signing failure
 
 `Main.java:61-63` -- `signFiles()` tracks `failedCount` but doesn't propagate it. The CLI exits with code 0 even when all files fail to sign.
-
-### [LOW] Redundant password setting
-
-`SignerLogic.java:193-196` -- `parameters.setPasswordProtection(ownerPwd.toCharArray())` is called twice inside the password encryption block (also at :181-183).
 
 ### [LOW] Font InputStream potentially leaked
 

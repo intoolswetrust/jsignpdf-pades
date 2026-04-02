@@ -57,7 +57,10 @@ public class Main {
             }
 
             if (!noFilesProvided) {
-                signFiles(config);
+                int failCount = signFiles(config);
+                if (failCount > 0) {
+                    exitCode = 16 + failCount;
+                }
             }
         } catch (Throwable t) {
             LOGGER.log(Level.SEVERE, "Error occured", t);
@@ -67,7 +70,7 @@ public class Main {
         }
     }
 
-    private static void signFiles(BasicConfig config) {
+    private static int signFiles(BasicConfig config) {
         SignerLogic signerLogic = new SignerLogic(config);
         int successCount = 0;
         int failedCount = 0;
@@ -85,6 +88,7 @@ public class Main {
         if (failedCount > 0) {
             LOGGER.warning("Signing completed with " + failedCount + " failure(s) and " + successCount + " success(es).");
         }
+        return failedCount;
     }
 
     private static File getOutputFile(File pdfFile, BasicConfig config) {

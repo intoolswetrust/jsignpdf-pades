@@ -21,7 +21,6 @@ import com.github.intoolswetrust.jsignpdf.pades.SignerLogic;
 import com.github.intoolswetrust.jsignpdf.pades.TestConstants;
 import com.github.intoolswetrust.jsignpdf.pades.signing.validation.PdfSignatureValidator;
 import com.github.intoolswetrust.jsignpdf.pades.signing.validation.PdfSignatureValidator.ValidationResult;
-import com.github.intoolswetrust.jsignpdf.pades.types.PDFEncryption;
 import com.github.intoolswetrust.jsignpdf.pades.types.PrintRight;
 
 /**
@@ -106,7 +105,7 @@ public class PasswordProtectedPdfSigningTest extends SigningTestBase {
     @Test
     public void testPasswordEncryptionBeforeSigning() throws Exception {
         BasicConfig options = createDefaultOptions();
-        options.setPdfEncryption(PDFEncryption.PASSWORD);
+        options.setEncryptBeforeSign(true);
         options.setPdfOwnerPwd(OWNER_PASSWORD);
         options.setPdfUserPwd(USER_PASSWORD);
 
@@ -138,7 +137,7 @@ public class PasswordProtectedPdfSigningTest extends SigningTestBase {
         BasicConfig options2 = TestConstants.TestPrivateKey.RSA2048.toSignerOptions(TestConstants.Keystore.JKS);
         File secondInput = outputFile;
         File secondOutput = new File(tempDir.toFile(), "output2.pdf");
-        options2.setPdfEncryption(PDFEncryption.PASSWORD);
+        options2.setEncryptBeforeSign(true);
         options2.setPdfOwnerPwd("owner");
         options2.setPdfUserPwd("user");
 
@@ -150,7 +149,7 @@ public class PasswordProtectedPdfSigningTest extends SigningTestBase {
     @Test
     public void testEncryptionWithPermissions() throws Exception {
         BasicConfig options = createDefaultOptions();
-        options.setPdfEncryption(PDFEncryption.PASSWORD);
+        options.setEncryptBeforeSign(true);
         options.setPdfOwnerPwd(OWNER_PASSWORD);
         options.setPdfUserPwd(USER_PASSWORD);
         options.setRightPrinting(PrintRight.DISALLOW_PRINTING);

@@ -45,7 +45,7 @@ Java 11+ required. Tests use JUnit 5.
 | `KeyStoreUtils` | Keystore loading and key alias listing |
 | `Pkcs11Initializer` | PKCS#11 provider registration (Closeable) |
 | `TrustedCertSourcesProvider` | Builds DSS trust sources from TrustConfig |
-| `types/*` | Enums: HashAlgorithm, CertificationLevel, PDFEncryption, PrintRight, ServerAuthentication |
+| `types/*` | Enums: CertificationLevel, PrintRight, ServerAuthentication |
 | `utils/PrivateKeySignatureToken` | DSS adapter wrapping PrivateKey + cert chain |
 | `utils/FontUtils` | Loads DejaVuSans font for visible signatures |
 
