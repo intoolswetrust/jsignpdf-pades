@@ -9,10 +9,6 @@
 - `TrustConfig.java:25` (both modules) -- `keystorePassword` as String.
 - The getters like `getKeyStorePasswordAsChars()` (`BasicConfig.java:224`) create new arrays from the retained String, so the String itself is never cleared. This is partly a JCommander limitation, but should at least be documented.
 
-### [LOW] Temp files may contain sensitive PDF content
-
-- `SignerLogic.java:305,313` -- `encryptPdf()` and `addBlankPage()` write temp files with `deleteOnExit()`. Files persist for JVM lifetime and survive crashes.
-
 ## 2. Bugs and Logic Errors
 
 ### [HIGH] LOTL sources never added to list

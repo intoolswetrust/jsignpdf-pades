@@ -191,9 +191,6 @@ public class SignerLogic {
                 if (encryptedTempFile == null) {
                     return false;
                 }
-                if (StringUtils.isNotEmpty(ownerPwd)) {
-                    parameters.setPasswordProtection(ownerPwd.toCharArray());
-                }
             }
 
             // Add blank page if requested (before loading as DSSDocument)
