@@ -7,6 +7,8 @@ import java.io.File;
 import org.junit.jupiter.api.Test;
 
 import com.github.intoolswetrust.jsignpdf.pades.SignerLogic;
+import com.github.intoolswetrust.jsignpdf.pades.TestConstants.Keystore;
+import com.github.intoolswetrust.jsignpdf.pades.TestConstants.TestPrivateKey;
 import com.github.intoolswetrust.jsignpdf.pades.config.BasicConfig;
 
 /**
@@ -49,5 +51,14 @@ public class SignerLogicValidationTest extends SigningTestBase {
         File directory = tempDir.toFile();
         boolean result = new SignerLogic(options).signFile(directory, outputFile);
         assertFalse(result, "signFile should return false when input is a directory");
+    }
+
+    @Test
+    public void testSigningWithExpiredKeyFails() throws Exception {
+        BasicConfig options = createOptions(TestPrivateKey.EXPIRED, Keystore.JKS);
+
+        boolean result = new SignerLogic(options).signFile(inputFile, outputFile);
+
+        assertFalse(result, "Signing with an expired certificate should fail");
     }
 }
