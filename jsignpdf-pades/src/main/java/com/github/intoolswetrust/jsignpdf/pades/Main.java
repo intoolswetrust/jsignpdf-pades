@@ -9,8 +9,6 @@ import java.util.logging.Level;
 
 import org.apache.commons.lang3.StringUtils;
 
-import org.apache.commons.lang3.StringUtils;
-
 import com.beust.jcommander.JCommander;
 import com.github.intoolswetrust.jsignpdf.pades.config.BasicConfig;
 import com.github.intoolswetrust.jsignpdf.pades.config.Pkcs11Config;

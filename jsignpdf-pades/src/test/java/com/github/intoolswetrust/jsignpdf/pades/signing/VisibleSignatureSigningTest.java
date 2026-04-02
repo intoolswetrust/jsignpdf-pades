@@ -58,7 +58,7 @@ public class VisibleSignatureSigningTest extends SigningTestBase {
         options.setPositionURY(120);
         options.setReason("TestReason");
         options.setLocation("TestLocation");
-        options.setL2Text("Signed by ${signer}, reason: ${reason}, loc: ${location}");
+        options.setText("Signed by ${signer}, reason: ${reason}, loc: ${location}");
         ValidationResult result = signAndValidate(options);
 
         assertTrue(result.signatureValid, "Signature should be valid");
@@ -86,7 +86,7 @@ public class VisibleSignatureSigningTest extends SigningTestBase {
         options.setReason("AllReason");
         options.setLocation("AllLocation");
         options.setContact("all@contact.com");
-        options.setL2Text("S:${signer} R:${reason} L:${location} C:${contact} T:${timestamp}");
+        options.setText("S:${signer} R:${reason} L:${location} C:${contact} T:${timestamp}");
         ValidationResult result = signAndValidate(options);
 
         assertTrue(result.signatureValid, "Signature should be valid");

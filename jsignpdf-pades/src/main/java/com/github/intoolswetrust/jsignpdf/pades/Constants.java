@@ -40,7 +40,7 @@ public class Constants {
 
         String version = "[UNKNOWN]";
         try (InputStream is = Constants.class
-                .getResourceAsStream("/META-INF/maven/com.github.kwart.jsign/jsignpdf/pom.properties")) {
+                .getResourceAsStream("/META-INF/maven/com.github.kwart.jsign/jsignpdf-pades/pom.properties")) {
             if (is != null) {
                 Properties props = new Properties();
                 props.load(is);
@@ -54,12 +54,12 @@ public class Constants {
         VERSION = version;
     }
 
-    public static final String L2TEXT_PLACEHOLDER_CERTIFICATE = "certificate";
-    public static final String L2TEXT_PLACEHOLDER_TIMESTAMP = "timestamp";
-    public static final String L2TEXT_PLACEHOLDER_SIGNER = "signer";
-    public static final String L2TEXT_PLACEHOLDER_LOCATION = "location";
-    public static final String L2TEXT_PLACEHOLDER_REASON = "reason";
-    public static final String L2TEXT_PLACEHOLDER_CONTACT = "contact";
+    public static final String SIG_TEXT_PLACEHOLDER_CERTIFICATE = "certificate";
+    public static final String SIG_TEXT_PLACEHOLDER_TIMESTAMP = "timestamp";
+    public static final String SIG_TEXT_PLACEHOLDER_SIGNER = "signer";
+    public static final String SIG_TEXT_PLACEHOLDER_LOCATION = "location";
+    public static final String SIG_TEXT_PLACEHOLDER_REASON = "reason";
+    public static final String SIG_TEXT_PLACEHOLDER_CONTACT = "contact";
 
     public static final String L2TEXT_FONT_PATH = "/com/github/intoolswetrust/jsignpdf/pades/fonts/DejaVuSans.ttf";
 

@@ -9,7 +9,6 @@ import com.beust.jcommander.ParametersDelegate;
 import com.beust.jcommander.converters.FileConverter;
 
 import com.github.intoolswetrust.jsignpdf.pades.types.CertificationLevel;
-import com.github.intoolswetrust.jsignpdf.pades.types.HashAlgorithm;
 import com.github.intoolswetrust.jsignpdf.pades.types.PDFEncryption;
 import com.github.intoolswetrust.jsignpdf.pades.types.PrintRight;
 
@@ -59,9 +58,6 @@ public class BasicConfig {
     @Parameter(names = { "--digest-algorithm", "-da" }, description = "Digest algorithm used in the signature")
     private DigestAlgorithm digestAlgorithm = DigestAlgorithm.SHA256;
 
-    @Parameter(names = { "--hash-algorithm", "-ha" }, description = "Hash algorithm (SHA1, SHA256, SHA384, SHA512, RIPEMD160)")
-    private HashAlgorithm hashAlgorithm;
-
     @Parameter(names = { "--certification-level", "-cl" }, description = "Certification level")
     private CertificationLevel certLevel;
 
@@ -69,7 +65,8 @@ public class BasicConfig {
     @Parameter(names = { "--out-suffix", "-os" }, description = "Signed file suffix to be attached to the original name")
     private String outSuffix = "_signed";
 
-    @Parameter(names = { "--out-directory", "-d" }, description = "Directory to write the signed PDFs to. If not provided, the source directory of input PDF file is used.")
+    @Parameter(names = { "--out-directory",
+            "-d" }, description = "Directory to write the signed PDFs to. If not provided, the source directory of input PDF file is used.")
     private File outDirectory;
 
     // Certificate validation
@@ -120,11 +117,11 @@ public class BasicConfig {
     @Parameter(names = "-ury", description = "Upper right Y coordinate of visible signature")
     private float positionURY = 100;
 
-    @Parameter(names = "--l2-text", description = "L2 text content for visible signature")
-    private String l2Text;
+    @Parameter(names = { "-t", "--text" }, description = "Text content for visible signature")
+    private String text;
 
     @Parameter(names = { "-fs", "--font-size" }, description = "Font size for visible signature text")
-    private float l2TextFontSize = 10.0f;
+    private float textFontSize = 10.0f;
 
     @Parameter(names = "--bg-path", description = "Background image path for visible signature")
     private String bgImgPath;
@@ -261,14 +258,6 @@ public class BasicConfig {
         this.digestAlgorithm = digestAlgorithm;
     }
 
-    public HashAlgorithm getHashAlgorithm() {
-        return hashAlgorithm;
-    }
-
-    public void setHashAlgorithm(HashAlgorithm hashAlgorithm) {
-        this.hashAlgorithm = hashAlgorithm;
-    }
-
     public CertificationLevel getCertLevel() {
         return certLevel;
     }
@@ -401,20 +390,20 @@ public class BasicConfig {
         this.positionURY = positionURY;
     }
 
-    public String getL2Text() {
-        return l2Text;
+    public String getText() {
+        return text;
     }
 
-    public void setL2Text(String l2Text) {
-        this.l2Text = l2Text;
+    public void setText(String l2Text) {
+        this.text = l2Text;
     }
 
-    public float getL2TextFontSize() {
-        return l2TextFontSize;
+    public float getTextFontSize() {
+        return textFontSize;
     }
 
-    public void setL2TextFontSize(float l2TextFontSize) {
-        this.l2TextFontSize = l2TextFontSize;
+    public void setTextFontSize(float l2TextFontSize) {
+        this.textFontSize = l2TextFontSize;
     }
 
     public String getBgImgPath() {

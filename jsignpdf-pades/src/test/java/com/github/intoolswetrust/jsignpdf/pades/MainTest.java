@@ -101,15 +101,15 @@ public class MainTest {
         Pkcs11Config p11config = new Pkcs11Config();
         JCommander jcmd = JCommander.newBuilder().addObject(new Object[]{config, p11config}).build();
         jcmd.parse("-V", "-pg", "2", "-llx", "50.5", "-lly", "60", "-urx", "200", "-ury", "110",
-                "--l2-text", "Custom text", "-fs", "14.0", "dummy.pdf");
+                "--text", "Custom text", "-fs", "14.0", "dummy.pdf");
         assertTrue(config.isVisible());
         assertEquals(2, config.getPage());
         assertEquals(50.5f, config.getPositionLLX(), 0.01f);
         assertEquals(60f, config.getPositionLLY(), 0.01f);
         assertEquals(200f, config.getPositionURX(), 0.01f);
         assertEquals(110f, config.getPositionURY(), 0.01f);
-        assertEquals("Custom text", config.getL2Text());
-        assertEquals(14.0f, config.getL2TextFontSize(), 0.01f);
+        assertEquals("Custom text", config.getText());
+        assertEquals(14.0f, config.getTextFontSize(), 0.01f);
     }
 
     @Test

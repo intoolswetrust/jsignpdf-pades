@@ -9,27 +9,11 @@
 - `TrustConfig.java:25` (both modules) -- `keystorePassword` as String.
 - The getters like `getKeyStorePasswordAsChars()` (`BasicConfig.java:224`) create new arrays from the retained String, so the String itself is never cleared. This is partly a JCommander limitation, but should at least be documented.
 
-### [MEDIUM] SHA-1 and RIPEMD-160 offered as signing algorithms
-
-- `HashAlgorithm.java:6,10` -- SHA-1 is cryptographically broken for collision resistance, RIPEMD-160 is deprecated. Consider at minimum logging a warning when these are selected.
-
 ### [LOW] Temp files may contain sensitive PDF content
 
 - `SignerLogic.java:305,313` -- `encryptPdf()` and `addBlankPage()` write temp files with `deleteOnExit()`. Files persist for JVM lifetime and survive crashes.
 
 ## 2. Bugs and Logic Errors
-
-### [HIGH] TSA URL silently overrides PadesLevel
-
-`SignerLogic.java:141-145`:
-```java
-if (useTsa) {
-    parameters.setSignatureLevel(SignatureLevel.PAdES_BASELINE_T);
-} else {
-    parameters.setSignatureLevel(options.getPadesLevel().getSignatureLevel());
-}
-```
-When a TSA URL is provided, the signature level is always forced to `BASELINE_T`, even if the user explicitly requested `BASELINE_LT` or `BASELINE_LTA`. The user's `--pades-level` flag is silently ignored. Users requesting LT/LTA levels need a TSA, yet the code downgrades them to T.
 
 ### [HIGH] LOTL sources never added to list
 

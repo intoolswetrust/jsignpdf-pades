@@ -24,7 +24,7 @@ public class VisibleSignatureEdgeCasesTest extends SigningTestBase {
         BasicConfig options = createDefaultOptions();
         options.setVisible(true);
         options.setSignerName("Custom Signer Name");
-        options.setL2Text("Signed by: ${signer}");
+        options.setText("Signed by: ${signer}");
         options.setPositionLLX(0);
         options.setPositionLLY(0);
         options.setPositionURX(200);

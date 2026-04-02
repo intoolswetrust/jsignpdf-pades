@@ -1,11 +1,11 @@
 package com.github.intoolswetrust.jsignpdf.pades;
 
-import static com.github.intoolswetrust.jsignpdf.pades.Constants.L2TEXT_PLACEHOLDER_CERTIFICATE;
-import static com.github.intoolswetrust.jsignpdf.pades.Constants.L2TEXT_PLACEHOLDER_CONTACT;
-import static com.github.intoolswetrust.jsignpdf.pades.Constants.L2TEXT_PLACEHOLDER_LOCATION;
-import static com.github.intoolswetrust.jsignpdf.pades.Constants.L2TEXT_PLACEHOLDER_REASON;
-import static com.github.intoolswetrust.jsignpdf.pades.Constants.L2TEXT_PLACEHOLDER_SIGNER;
-import static com.github.intoolswetrust.jsignpdf.pades.Constants.L2TEXT_PLACEHOLDER_TIMESTAMP;
+import static com.github.intoolswetrust.jsignpdf.pades.Constants.SIG_TEXT_PLACEHOLDER_CERTIFICATE;
+import static com.github.intoolswetrust.jsignpdf.pades.Constants.SIG_TEXT_PLACEHOLDER_CONTACT;
+import static com.github.intoolswetrust.jsignpdf.pades.Constants.SIG_TEXT_PLACEHOLDER_LOCATION;
+import static com.github.intoolswetrust.jsignpdf.pades.Constants.SIG_TEXT_PLACEHOLDER_REASON;
+import static com.github.intoolswetrust.jsignpdf.pades.Constants.SIG_TEXT_PLACEHOLDER_SIGNER;
+import static com.github.intoolswetrust.jsignpdf.pades.Constants.SIG_TEXT_PLACEHOLDER_TIMESTAMP;
 import static com.github.intoolswetrust.jsignpdf.pades.Constants.LOGGER;
 
 import java.io.File;
@@ -38,7 +38,6 @@ import com.github.intoolswetrust.jsignpdf.pades.config.BasicConfig;
 import com.github.intoolswetrust.jsignpdf.pades.config.PadesLevel;
 import com.github.intoolswetrust.jsignpdf.pades.config.TsaConfig;
 import com.github.intoolswetrust.jsignpdf.pades.types.CertificationLevel;
-import com.github.intoolswetrust.jsignpdf.pades.types.HashAlgorithm;
 import com.github.intoolswetrust.jsignpdf.pades.types.PDFEncryption;
 import com.github.intoolswetrust.jsignpdf.pades.types.PrintRight;
 import com.github.intoolswetrust.jsignpdf.pades.types.ServerAuthentication;
@@ -128,10 +127,7 @@ public class SignerLogic {
 
             PAdESSignatureParameters parameters = new PAdESSignatureParameters();
 
-            HashAlgorithm hashAlgorithm = options.getHashAlgorithm();
-            DigestAlgorithm digestAlgorithm = hashAlgorithm != null
-                    ? hashAlgorithm.toDssDigestAlgorithm()
-                    : options.getDigestAlgorithm();
+            DigestAlgorithm digestAlgorithm = options.getDigestAlgorithm();
 
             parameters.setDigestAlgorithm(digestAlgorithm);
             parameters.setSigningCertificate(keyEntry.getCertificate());
@@ -385,15 +381,15 @@ public class SignerLogic {
             final String timestamp = new SimpleDateFormat("yyyy.MM.dd HH:mm:ss z").format(signingCal.getTime());
 
             String l2text;
-            if (options.getL2Text() != null) {
+            if (options.getText() != null) {
                 final Map<String, String> replacements = new HashMap<>();
-                replacements.put(L2TEXT_PLACEHOLDER_SIGNER, StringUtils.defaultString(signer));
-                replacements.put(L2TEXT_PLACEHOLDER_CERTIFICATE, certificate);
-                replacements.put(L2TEXT_PLACEHOLDER_TIMESTAMP, timestamp);
-                replacements.put(L2TEXT_PLACEHOLDER_LOCATION, StringUtils.defaultString(options.getLocation()));
-                replacements.put(L2TEXT_PLACEHOLDER_REASON, StringUtils.defaultString(options.getReason()));
-                replacements.put(L2TEXT_PLACEHOLDER_CONTACT, StringUtils.defaultString(options.getContact()));
-                l2text = StrSubstitutor.replace(options.getL2Text(), replacements);
+                replacements.put(SIG_TEXT_PLACEHOLDER_SIGNER, StringUtils.defaultString(signer));
+                replacements.put(SIG_TEXT_PLACEHOLDER_CERTIFICATE, certificate);
+                replacements.put(SIG_TEXT_PLACEHOLDER_TIMESTAMP, timestamp);
+                replacements.put(SIG_TEXT_PLACEHOLDER_LOCATION, StringUtils.defaultString(options.getLocation()));
+                replacements.put(SIG_TEXT_PLACEHOLDER_REASON, StringUtils.defaultString(options.getReason()));
+                replacements.put(SIG_TEXT_PLACEHOLDER_CONTACT, StringUtils.defaultString(options.getContact()));
+                l2text = StrSubstitutor.replace(options.getText(), replacements);
             } else {
                 final StringBuilder buf = new StringBuilder();
                 buf.append("Signed by: ").append(signer).append('\n');
@@ -408,7 +404,7 @@ public class SignerLogic {
             SignatureImageTextParameters textParams = new SignatureImageTextParameters();
             textParams.setText(l2text);
 
-            float fontSize = options.getL2TextFontSize();
+            float fontSize = options.getTextFontSize();
             if (fontSize <= 0f) {
                 fontSize = 10.0f;
             }

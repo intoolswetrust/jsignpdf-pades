@@ -1,53 +1,55 @@
 package com.github.intoolswetrust.jsignpdf.pades.signing;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
 import com.github.intoolswetrust.jsignpdf.pades.config.BasicConfig;
-import com.github.intoolswetrust.jsignpdf.pades.types.HashAlgorithm;
 import com.github.intoolswetrust.jsignpdf.pades.signing.validation.PdfSignatureValidator;
 import com.github.intoolswetrust.jsignpdf.pades.signing.validation.PdfSignatureValidator.ValidationResult;
 
+import eu.europa.esig.dss.enumerations.DigestAlgorithm;
+
 /**
- * Tests that each supported {@link HashAlgorithm} produces a valid signature whose CMS
+ * Tests that each supported {@link DigestAlgorithm} produces a valid signature whose CMS
  * container uses the correct digest algorithm.
  */
-public class HashAlgorithmSigningTest extends SigningTestBase {
+public class DigestAlgorithmSigningTest extends SigningTestBase {
 
     /** Signs with SHA-1 and verifies the CMS digest algorithm OID. */
     @Test
     public void testSha1() throws Exception {
-        assertHashAlgorithm(HashAlgorithm.SHA1, "SHA-1");
+        assertDigestAlgorithm(DigestAlgorithm.SHA1, "SHA-1");
     }
 
     /** Signs with SHA-256 and verifies the CMS digest algorithm OID. */
     @Test
     public void testSha256() throws Exception {
-        assertHashAlgorithm(HashAlgorithm.SHA256, "SHA-256");
+        assertDigestAlgorithm(DigestAlgorithm.SHA256, "SHA-256");
     }
 
     /** Signs with SHA-384 and verifies the CMS digest algorithm OID. */
     @Test
     public void testSha384() throws Exception {
-        assertHashAlgorithm(HashAlgorithm.SHA384, "SHA-384");
+        assertDigestAlgorithm(DigestAlgorithm.SHA384, "SHA-384");
     }
 
     /** Signs with SHA-512 and verifies the CMS digest algorithm OID. */
     @Test
     public void testSha512() throws Exception {
-        assertHashAlgorithm(HashAlgorithm.SHA512, "SHA-512");
+        assertDigestAlgorithm(DigestAlgorithm.SHA512, "SHA-512");
     }
 
     /** Signs with RIPEMD-160 and verifies the CMS digest algorithm OID. */
     @Test
     public void testRipemd160() throws Exception {
-        assertHashAlgorithm(HashAlgorithm.RIPEMD160, "RIPEMD160");
+        assertDigestAlgorithm(DigestAlgorithm.RIPEMD160, "RIPEMD160");
     }
 
-    private void assertHashAlgorithm(HashAlgorithm algorithm, String expectedName) throws Exception {
+    private void assertDigestAlgorithm(DigestAlgorithm algorithm, String expectedName) throws Exception {
         BasicConfig options = createDefaultOptions();
-        options.setHashAlgorithm(algorithm);
+        options.setDigestAlgorithm(algorithm);
         ValidationResult result = signAndValidate(options);
 
         assertTrue(result.signatureValid, "Signature should be valid");

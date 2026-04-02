@@ -89,7 +89,7 @@ public class BlankPageInsertionTest extends SigningTestBase {
         options.setPositionLLY(50);
         options.setPositionURX(300);
         options.setPositionURY(150);
-        options.setL2Text("Signed on blank page by ${signer}");
+        options.setText("Signed on blank page by ${signer}");
 
         ValidationResult result = signAndValidate(options);
 
