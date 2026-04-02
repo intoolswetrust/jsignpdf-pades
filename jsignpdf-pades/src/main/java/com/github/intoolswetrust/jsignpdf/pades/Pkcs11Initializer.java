@@ -18,8 +18,8 @@ import com.github.intoolswetrust.jsignpdf.pades.config.Pkcs11Config;
 
 public class Pkcs11Initializer implements Closeable {
 
-    public static volatile Provider SUN_PROVIDER;
-    public static volatile Provider JSIGN_PROVIDER;
+    private volatile Provider sunProvider;
+    private volatile Provider jsignProvider;
 
     private volatile File tempConfigFile;
 
@@ -60,11 +60,11 @@ public class Pkcs11Initializer implements Closeable {
         }
     }
 
-    private static void registerProviders(final File cfgFile) {
+    private void registerProviders(final File cfgFile) {
         String absolutePath = cfgFile.getAbsolutePath();
         if (cfgFile.isFile()) {
-            SUN_PROVIDER = initPkcs11Provider(absolutePath, "sun.security.pkcs11.SunPKCS11");
-            JSIGN_PROVIDER = initPkcs11Provider(absolutePath, "com.github.kwart.jsign.pkcs11.JSignPKCS11");
+            sunProvider = initPkcs11Provider(absolutePath, "sun.security.pkcs11.SunPKCS11");
+            jsignProvider = initPkcs11Provider(absolutePath, "com.github.kwart.jsign.pkcs11.JSignPKCS11");
         } else {
             throw new IllegalArgumentException(
                     "The PKCS#11 provider is not registered. Configuration file doesn't exist: " + absolutePath);
@@ -80,9 +80,9 @@ public class Pkcs11Initializer implements Closeable {
      *
      * @param providerName
      */
-    private static void unregisterProviders() {
-        SUN_PROVIDER = unregisterProvider(SUN_PROVIDER);
-        JSIGN_PROVIDER = unregisterProvider(JSIGN_PROVIDER);
+    private void unregisterProviders() {
+        sunProvider = unregisterProvider(sunProvider);
+        jsignProvider = unregisterProvider(jsignProvider);
         // we should wait a little bit to de-register provider correctly (is it a driver
         // issue?)
         try {

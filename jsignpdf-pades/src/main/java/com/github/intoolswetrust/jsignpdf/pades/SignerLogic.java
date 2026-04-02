@@ -181,8 +181,6 @@ public class SignerLogic {
                 parameters.setPasswordProtection(ownerPwd.toCharArray());
             }
 
-            parameters.setContentSize(30000);
-
             // Encrypt PDF if requested (encrypt-before-sign)
             if (options.isEncryptBeforeSign()) {
                 LOGGER.info("Setting encryption.");
