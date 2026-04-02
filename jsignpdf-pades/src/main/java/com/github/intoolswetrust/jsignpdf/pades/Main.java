@@ -8,6 +8,7 @@ import java.util.TreeSet;
 import java.util.logging.Level;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 
 import com.beust.jcommander.JCommander;
 import com.github.intoolswetrust.jsignpdf.pades.config.BasicConfig;
@@ -94,7 +95,7 @@ public class Main {
     private static File getOutputFile(File pdfFile, BasicConfig config) {
         String tmpNameBase = pdfFile.getName();
         String tmpSuffix = ".pdf";
-        if (StringUtils.endsWithIgnoreCase(tmpNameBase, tmpSuffix)) {
+        if (Strings.CI.endsWith(tmpNameBase, tmpSuffix)) {
             tmpSuffix = StringUtils.right(tmpNameBase, 4);
             tmpNameBase = StringUtils.left(tmpNameBase, tmpNameBase.length() - 4);
         }

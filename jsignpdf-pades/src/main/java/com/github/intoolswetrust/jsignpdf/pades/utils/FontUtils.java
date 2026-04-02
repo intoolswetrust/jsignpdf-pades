@@ -1,6 +1,11 @@
 package com.github.intoolswetrust.jsignpdf.pades.utils;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
+import java.util.logging.Level;
+
+import com.github.intoolswetrust.jsignpdf.pades.Constants;
 
 import eu.europa.esig.dss.pades.DSSFileFont;
 import eu.europa.esig.dss.pades.DSSFont;
@@ -12,26 +17,23 @@ import eu.europa.esig.dss.pades.DSSFont;
  */
 public class FontUtils {
 
-    private static final String DEFAULT_FONT_PATH = "/com/github/intoolswetrust/jsignpdf/pades/fonts/DejaVuSans.ttf";
-
-    private static DSSFont l2baseFont;
+    private static final String DEFAULT_EMBEDDED_FONT_PATH = "/com/github/intoolswetrust/jsignpdf/pades/fonts/DejaVuSans.ttf";
 
     /**
      * Returns DSSFont for text of visible signature.
      *
      * @return DSSFont instance or null
      */
-    public static synchronized DSSFont getL2BaseFont() {
-        if (l2baseFont == null) {
-            try {
-                InputStream is = FontUtils.class.getResourceAsStream(DEFAULT_FONT_PATH);
-                if (is != null) {
-                    l2baseFont = new DSSFileFont(is);
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+    public static synchronized DSSFont getVisibleSignatureFont(File fontFile) {
+        DSSFont font = null;
+        try (InputStream is = fontFile != null ? new FileInputStream(fontFile)
+                : FontUtils.class.getResourceAsStream(DEFAULT_EMBEDDED_FONT_PATH)) {
+            if (is != null) {
+                font = new DSSFileFont(is);
             }
+        } catch (Exception e) {
+            Constants.LOGGER.log(Level.SEVERE, "Font loading failer.", e);
         }
-        return l2baseFont;
+        return font;
     }
 }

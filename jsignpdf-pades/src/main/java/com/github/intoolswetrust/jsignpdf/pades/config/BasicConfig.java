@@ -120,6 +120,9 @@ public class BasicConfig {
     @Parameter(names = { "-t", "--text" }, description = "Text content for visible signature")
     private String text;
 
+    @Parameter(names = { "-ff", "--font-file" }, description = "TTF Font file to be used for visible signature text")
+    private File fontFile;
+
     @Parameter(names = { "-fs", "--font-size" }, description = "Font size for visible signature text")
     private float textFontSize = 10.0f;
 
@@ -502,4 +505,7 @@ public class BasicConfig {
         return trustConfig;
     }
 
+    public File getFontFile() {
+        return fontFile;
+    }
 }

@@ -3,13 +3,12 @@ package com.github.intoolswetrust.jsignpdf.pades.signing;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.nio.file.Files;
 
 import org.junit.jupiter.api.Test;
 
-import com.github.intoolswetrust.jsignpdf.pades.config.BasicConfig;
 import com.github.intoolswetrust.jsignpdf.pades.SignerLogic;
+import com.github.intoolswetrust.jsignpdf.pades.config.BasicConfig;
 
 /**
  * Tests PDF signing in append vs. non-append mode. Append mode preserves the original PDF

@@ -9,63 +9,17 @@
 - `TrustConfig.java:25` (both modules) -- `keystorePassword` as String.
 - The getters like `getKeyStorePasswordAsChars()` (`BasicConfig.java:224`) create new arrays from the retained String, so the String itself is never cleared. This is partly a JCommander limitation, but should at least be documented.
 
-## 2. Bugs and Logic Errors
-
 ### [MEDIUM] EU LOTL flag is a no-op in validator
 
 `SignatureValidator.java:59-61` -- When `--trust-use-default-lotl` is set, it only logs a message but never actually loads the EU LOTL. The validator's `configureTrust()` does nothing with LOTL URLs either.
 
-### [LOW] Exit code not set on signing failure
-
-`Main.java:61-63` -- `signFiles()` tracks `failedCount` but doesn't propagate it. The CLI exits with code 0 even when all files fail to sign.
-
-### [LOW] Font InputStream potentially leaked
-
-`FontUtils.java:27-29` -- The `InputStream` from `getResourceAsStream()` is passed to `DSSFileFont` but never explicitly closed.
-
-### [LOW] `encryptPdf` inconsistent error signaling
-
-`SignerLogic.java:291` -- Method is declared `throws Exception` but uses `null` return as error signal. The caller checks for null but also wraps in try-catch. Pick one pattern.
-
 ## 3. Design / Architecture
-
-### [MEDIUM] Dual digest algorithm options create confusion
-
-`BasicConfig.java:59-63` -- There are two ways to set the digest algorithm: `--digest-algorithm` (DSS `DigestAlgorithm` enum) and `--hash-algorithm` (custom `HashAlgorithm` enum). `SignerLogic.java:131-133` gives `hashAlgorithm` priority. One should be removed or deprecated.
 
 ### [MEDIUM] TrustConfig duplicated between modules
 
 `jsignpdf-pades/config/TrustConfig.java` and `validator/config/TrustConfig.java` are nearly identical. They've already drifted apart (signer does LOTL loading, validator doesn't), creating module-specific bugs.
 
-### [LOW] PDF loaded multiple times for complex signing
-
-When encryption, blank-page insertion, and visible signature are all enabled, the input PDF is loaded 4 separate times. Could be significant for large files.
-
-### [LOW] `PrivateKeySignatureToken.sign()` ignores its `keyEntry` parameter
-
-`PrivateKeySignatureToken.java:46-47` -- The `sign` method always uses the instance's `privateKey` field, ignoring the passed `DSSPrivateKeyEntry`. Misleading contract.
-
-### [LOW] Catching `OutOfMemoryError`
-
-`SignerLogic.java:261` -- Catching OOM is generally discouraged; JVM state is unpredictable after OOM.
-
 ## 4. Code Quality
-
-### [LOW] Wrong artifact path for version detection
-
-`Constants.java:43` -- Path uses `jsignpdf` but the actual artifactId is `jsignpdf-pades`. Version will always be `[UNKNOWN]`.
-
-### [LOW] `e.printStackTrace()` in production code
-
-`FontUtils.java:32` -- Should use a logger instead of printing to stderr.
-
-### [LOW] Magic number 30000
-
-`SignerLogic.java:184` -- `parameters.setContentSize(30000)` uses an unexplained magic number. Should be a named constant.
-
-### [LOW] Mutable public static fields
-
-`Pkcs11Initializer.java:22-23` -- `SUN_PROVIDER` and `JSIGN_PROVIDER` are public mutable statics, problematic for testing and concurrent usage.
 
 ## 5. Test Coverage Gaps
 
@@ -98,20 +52,7 @@ Validator tests only use well-formed PDFs.
 ## 7. Documentation
 
 - **[LOW]** README claims Mutual TLS support (line 10), but `CERTIFICATE` authentication is not implemented in `SignerLogic`.
-- **[LOW]** README mentions Baseline-LT/LTA as features, but `SignerLogic` overrides to `BASELINE_T` whenever TSA is present, making LT/LTA effectively unusable.
-- **[INFO]** AGENTS.md is well-structured and accurate for the module layout.
-
-## Summary
-
-| Severity | Count | Key Items |
-|----------|-------|-----------|
-| HIGH     | 3     | TSA overrides PadesLevel; LOTL sources never added; Passwords as Strings |
-| MEDIUM   | 7     | SSRF via cert URLs; SHA-1 offered; EU LOTL no-op in validator; duplicate import; deprecated API; dual hash options; no PadesLevel tests |
-| LOW      | 15    | Code quality, resource leaks, dead code, test gaps |
 
 ### Recommended fixes before merge
 
-1. **`TrustedCertSourcesProvider.java:72-77`** -- Add `lotlSources.add(lotlSource)` to fix dead `--trust-lotl-url`
-2. **`SignerLogic.java:141-145`** -- Respect user's PadesLevel when TSA is set (only override to T if level is B)
 3. **`SignatureValidator.java:59-61`** -- Actually implement LOTL loading in the validator, or remove the flag
-4. **`Main.java:61-63`** -- Propagate signing failures to exit code

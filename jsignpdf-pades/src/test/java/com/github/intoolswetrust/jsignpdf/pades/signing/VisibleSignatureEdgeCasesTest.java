@@ -1,6 +1,7 @@
 package com.github.intoolswetrust.jsignpdf.pades.signing;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -9,9 +10,7 @@ import javax.imageio.ImageIO;
 
 import org.junit.jupiter.api.Test;
 
-import com.github.intoolswetrust.jsignpdf.pades.SignerLogic;
 import com.github.intoolswetrust.jsignpdf.pades.config.BasicConfig;
-import com.github.intoolswetrust.jsignpdf.pades.signing.validation.PdfSignatureValidator;
 import com.github.intoolswetrust.jsignpdf.pades.signing.validation.PdfSignatureValidator.ValidationResult;
 
 /**
