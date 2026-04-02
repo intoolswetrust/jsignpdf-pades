@@ -1,4 +1,4 @@
-package com.github.intoolswetrust.jsignpdf.pades.config;
+package com.github.intoolswetrust.jsignpdf.pades.common;
 
 import java.io.File;
 import java.security.KeyStore;
@@ -84,7 +84,6 @@ public class TrustConfig {
 
     public void setUseDefaultLotl(boolean useDefaultLotl) {
         this.useDefaultLotl = useDefaultLotl;
-    }    
-
+    }
 
 }

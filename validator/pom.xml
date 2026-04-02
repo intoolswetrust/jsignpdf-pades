@@ -63,6 +63,10 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.github.kwart.jsign</groupId>
+            <artifactId>jsignpdf-pades-common</artifactId>
+        </dependency>
+        <dependency>
             <groupId>eu.europa.ec.joinup.sd-dss</groupId>
             <artifactId>dss-validation</artifactId>
         </dependency>

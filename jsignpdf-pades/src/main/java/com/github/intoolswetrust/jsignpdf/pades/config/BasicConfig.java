@@ -8,6 +8,7 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
 import com.beust.jcommander.converters.FileConverter;
 
+import com.github.intoolswetrust.jsignpdf.pades.common.TrustConfig;
 import com.github.intoolswetrust.jsignpdf.pades.types.CertificationLevel;
 
 import com.github.intoolswetrust.jsignpdf.pades.types.PrintRight;

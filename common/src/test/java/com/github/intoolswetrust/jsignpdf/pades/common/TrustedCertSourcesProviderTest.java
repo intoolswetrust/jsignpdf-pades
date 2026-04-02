@@ -1,4 +1,4 @@
-package com.github.intoolswetrust.jsignpdf.pades;
+package com.github.intoolswetrust.jsignpdf.pades.common;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -14,8 +14,6 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-
-import com.github.intoolswetrust.jsignpdf.pades.config.TrustConfig;
 
 import eu.europa.esig.dss.spi.x509.CertificateSource;
 import eu.europa.esig.dss.tsl.source.LOTLSource;

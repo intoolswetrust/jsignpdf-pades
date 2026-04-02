@@ -8,6 +8,8 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
 import com.beust.jcommander.converters.FileConverter;
 
+import com.github.intoolswetrust.jsignpdf.pades.common.TrustConfig;
+
 public class ValidatorConfig {
 
     @Parameter(converter = FileConverter.class, description = "PDF files to validate")

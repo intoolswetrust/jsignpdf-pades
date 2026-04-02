@@ -8,15 +8,17 @@ jsignpdf-pades is a Java CLI application for PAdES PDF signing and validation. I
 
 ```
 jsignpdf-pades/             # Parent POM (groupId: com.github.kwart.jsign)
+  common/                   # Shared trust module (artifactId: jsignpdf-pades-common)
   jsignpdf-pades/           # Signing module (artifactId: jsignpdf-pades)
   validator/                # Validation module (artifactId: jsignpdf-pades-validator)
   distribution/             # ZIP distribution assembly
 ```
 
-Modules are independent - the validator does not depend on the signing module.
+Both the signing and validator modules depend on the common module for shared trust configuration.
 
 ## Package Structure
 
+- Common: `com.github.intoolswetrust.jsignpdf.pades.common`
 - Signing: `com.github.intoolswetrust.jsignpdf.pades`
 - Validator: `com.github.intoolswetrust.jsignpdf.pades.validator`
 
@@ -31,6 +33,13 @@ Java 11+ required. Tests use JUnit 5.
 
 ## Key Classes
 
+### Common Module
+
+| Class | Role |
+|-------|------|
+| `TrustConfig` | JCommander config for trust parameters (LOTL, certs, keystore) |
+| `TrustedCertSourcesProvider` | Builds DSS trust sources from TrustConfig (with LOTL support) |
+
 ### Signing Module
 
 | Class | Role |
@@ -39,12 +48,10 @@ Java 11+ required. Tests use JUnit 5.
 | `SignerLogic` | Core signing logic. Takes `BasicConfig` + `File inFile, File outFile` |
 | `config/BasicConfig` | JCommander config - pure data holder, no logic |
 | `config/TsaConfig` | TSA parameters (delegate of BasicConfig) |
-| `config/TrustConfig` | Trust parameters (delegate of BasicConfig) |
 | `config/Pkcs11Config` | PKCS#11 parameters (separate JCommander object) |
 | `config/PadesLevel` | Enum mapping to DSS SignatureLevel |
 | `KeyStoreUtils` | Keystore loading and key alias listing |
 | `Pkcs11Initializer` | PKCS#11 provider registration (Closeable) |
-| `TrustedCertSourcesProvider` | Builds DSS trust sources from TrustConfig |
 | `types/*` | Enums: CertificationLevel, PrintRight, ServerAuthentication |
 | `utils/PrivateKeySignatureToken` | DSS adapter wrapping PrivateKey + cert chain |
 | `utils/FontUtils` | Loads DejaVuSans font for visible signatures |
@@ -58,14 +65,13 @@ Java 11+ required. Tests use JUnit 5.
 | `ValidationResult` | Wraps DSS Reports (SimpleReport, DetailedReport, DiagnosticData) |
 | `ValidationOutput` | Formats results as TEXT, XML, ETSI, or JSON |
 | `config/ValidatorConfig` | JCommander config |
-| `config/TrustConfig` | Trust parameters (independent copy) |
 | `config/OutputFormat` | TEXT, XML, ETSI, JSON enum |
 
 ## Design Principles
 
 - **Config classes are pure data holders** - no logic, no derived state, no mutable runtime fields. Defaults and conversions happen in the consumer (Main, SignerLogic).
 - **SignerLogic.signFile(File, File)** takes input/output files as parameters, not from config. Config is immutable after parsing.
-- **Modules are independent** - validator doesn't import signer classes. Shared patterns (TrustConfig) are duplicated for now. (They might be moved to a shared common module in the future.)
+- **Shared trust code lives in common** - both signing and validator modules depend on `jsignpdf-pades-common` for `TrustConfig` and `TrustedCertSourcesProvider`.
 - **DSS library does the heavy lifting** - signing, validation, certificate verification, TSA, OCSP/CRL are all delegated to DSS.
 
 ## Testing

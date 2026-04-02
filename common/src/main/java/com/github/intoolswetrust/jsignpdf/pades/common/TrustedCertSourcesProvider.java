@@ -1,4 +1,4 @@
-package com.github.intoolswetrust.jsignpdf.pades;
+package com.github.intoolswetrust.jsignpdf.pades.common;
 
 import java.io.File;
 import java.io.IOException;
@@ -7,8 +7,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-
-import com.github.intoolswetrust.jsignpdf.pades.config.TrustConfig;
 
 import eu.europa.esig.dss.service.http.commons.CommonsDataLoader;
 import eu.europa.esig.dss.service.http.commons.FileCacheDataLoader;

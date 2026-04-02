@@ -37,6 +37,7 @@
     </properties>
 
     <modules>
+        <module>common</module>
         <module>jsignpdf-pades</module>
         <module>validator</module>
         <module>distribution</module>
@@ -44,6 +45,11 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>com.github.kwart.jsign</groupId>
+                <artifactId>jsignpdf-pades-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             <dependency>
                 <groupId>com.github.kwart.jsign</groupId>
                 <artifactId>jsign-pkcs11</artifactId>
