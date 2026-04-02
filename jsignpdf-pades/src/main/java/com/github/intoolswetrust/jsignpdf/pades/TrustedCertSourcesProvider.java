@@ -74,6 +74,7 @@ public class TrustedCertSourcesProvider {
             lotlSource.setUrl(url);
             lotlSource.setCertificateSource(new CommonCertificateSource());
             // lotlSource.setPivotSupport(true);
+            lotlSources.add(lotlSource);
         }
         return lotlSources.toArray(new LOTLSource[lotlSources.size()]);
     }
