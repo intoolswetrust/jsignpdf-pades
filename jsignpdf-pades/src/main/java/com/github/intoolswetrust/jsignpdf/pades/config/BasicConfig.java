@@ -161,6 +161,9 @@ public class BasicConfig {
     @Parameter(names = "--disable-modify-content", description = "Deny modify content in encrypted documents")
     private boolean disableModifyContent;
 
+    @Parameter(names = "--insecure-relax-tls", description = "Switch to INSECURE mode and don't verify TLS connections")
+    private boolean insecureRelaxTls;
+
     // Delegates
     @ParametersDelegate
     private final TsaConfig tsaConfig = new TsaConfig();
@@ -508,5 +511,9 @@ public class BasicConfig {
 
     public File getFontFile() {
         return fontFile;
+    }
+
+    public boolean isInsecureRelaxTls() {
+        return insecureRelaxTls;
     }
 }

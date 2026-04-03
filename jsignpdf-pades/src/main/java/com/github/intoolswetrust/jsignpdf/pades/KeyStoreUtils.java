@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import com.github.intoolswetrust.jsignpdf.pades.config.BasicConfig;
@@ -190,6 +191,80 @@ public class KeyStoreUtils {
             ksType = KeyStore.getDefaultType();
         }
         return ksType;
+    }
+
+    public static KeyStore createTrustStore()
+            throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
+        final KeyStore trustStore = createKeyStore();
+        KeyStore ks = loadCacertsKeyStore(null);
+        copyCertificates(ks, trustStore);
+        return trustStore;
+    }
+
+    /**
+     * Creates empty PKCS12 keystore..
+     *
+     * @return new JKS keystore
+     * @throws KeyStoreException
+     * @throws IOException
+     * @throws CertificateException
+     * @throws NoSuchAlgorithmException
+     */
+    public static KeyStore createKeyStore()
+            throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
+        final KeyStore newKeyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        newKeyStore.load(null, null);
+        return newKeyStore;
+    }
+
+    /**
+     * Loads the default root certificates at &lt;java.home&gt;/lib/security/cacerts.
+     *
+     * @param provider the provider or <code>null</code> for the default provider
+     * @return a <CODE>KeyStore</CODE>
+     */
+    public static KeyStore loadCacertsKeyStore(String provider) {
+        String trustStorePath = System.getProperty("javax.net.ssl.trustStore");
+        if (StringUtils.isEmpty(trustStorePath)) {
+            trustStorePath = System.getProperty("java.home") + "/lib/security/cacerts";
+        }
+        File file = new File(trustStorePath);
+        FileInputStream fin = null;
+        try {
+            fin = new FileInputStream(file);
+            KeyStore k;
+            String ksType = KeyStore.getDefaultType();
+            if (provider == null) {
+                k = KeyStore.getInstance(ksType);
+            } else
+                k = KeyStore.getInstance(ksType, provider);
+            k.load(fin, null);
+            return k;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        } finally {
+            IOUtils.closeQuietly(fin);
+        }
+    }
+
+    /**
+     * Copies certificates from one keystore to another. Both keystore has to be initialized.
+     */
+    public static boolean copyCertificates(KeyStore fromKeyStore, KeyStore toKeyStore) {
+        if (fromKeyStore == null || toKeyStore == null) {
+            return false;
+        }
+
+        try {
+            for (String alias : getCertAliases(fromKeyStore)) {
+                toKeyStore.setCertificateEntry(alias, fromKeyStore.getCertificate(alias));
+            }
+            return true;
+        } catch (KeyStoreException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
 }

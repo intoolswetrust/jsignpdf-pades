@@ -23,7 +23,8 @@ public class Main {
         JCommander jcmd = JCommander.newBuilder().addObject(asArray(config, p11config)).build();
         jcmd.parse(args);
 
-        try (Pkcs11Initializer p11init = new Pkcs11Initializer(p11config)) {
+        try (Pkcs11Initializer p11init = new Pkcs11Initializer(p11config);
+                SSLInitializer sslInit = new SSLInitializer(config)) {
             if (config.isQuiet()) {
                 LOGGER.setLevel(Level.OFF);
             }

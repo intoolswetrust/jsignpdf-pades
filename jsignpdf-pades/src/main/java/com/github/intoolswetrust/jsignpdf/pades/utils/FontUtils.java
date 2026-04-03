@@ -32,7 +32,7 @@ public class FontUtils {
                 font = new DSSFileFont(is);
             }
         } catch (Exception e) {
-            Constants.LOGGER.log(Level.SEVERE, "Font loading failer.", e);
+            Constants.LOGGER.log(Level.SEVERE, "Font loading failed.", e);
         }
         return font;
     }
