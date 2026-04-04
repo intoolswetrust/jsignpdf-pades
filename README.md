@@ -67,7 +67,7 @@ java -jar jsignpdf-pades.jar -kst PKCS12 -ksf keystore.p12 -ksp password \
 
 # Encrypt and sign
 java -jar jsignpdf-pades.jar -kst PKCS12 -ksf keystore.p12 -ksp password \
-  -pe PASSWORD -opwd owner123 -upwd user123 document.pdf
+  --encrypt-before-sign -opwd owner123 -upwd user123 document.pdf
 ```
 
 ### Validation
@@ -121,7 +121,7 @@ java -jar jsignpdf-pades-validator.jar -h
 | Option | Description |
 |--------|-------------|
 | `-pl, --pades-level` | PAdES level: BASELINE_B, BASELINE_T, BASELINE_LT, BASELINE_LTA |
-| `-ha, --hash-algorithm` | Hash algorithm: SHA1, SHA256, SHA384, SHA512, RIPEMD160 |
+| `-da, --digest-algorithm` | Digest algorithm: SHA1, SHA256, SHA384, SHA512, RIPEMD160 |
 | `-cl, --certification-level` | Certification level: NOT_CERTIFIED, CERTIFIED_NO_CHANGES_ALLOWED, CERTIFIED_FORM_FILLING, CERTIFIED_FORM_FILLING_AND_ANNOTATIONS |
 | `-r, --reason` | Reason for signature |
 | `-l, --location` | Location of signature |
@@ -134,7 +134,8 @@ java -jar jsignpdf-pades-validator.jar -h
 | `-V, --visible-signature` | Enable visible signature |
 | `-pg, --page` | Page number (default: 1) |
 | `-llx, -lly, -urx, -ury` | Signature rectangle coordinates |
-| `--l2-text` | Custom text with placeholders: `${signer}`, `${reason}`, `${location}`, `${contact}`, `${timestamp}`, `${certificate}` |
+| `-t, --text` | Custom text with placeholders: `${signer}`, `${reason}`, `${location}`, `${contact}`, `${timestamp}`, `${certificate}` |
+| `-ff, --font-file` | TTF font file for visible signature text |
 | `-fs, --font-size` | Font size (default: 10) |
 | `--bg-path` | Background/logo image path |
 | `--image-only` | Image-only mode (no text) |
@@ -167,7 +168,7 @@ java -jar jsignpdf-pades-validator.jar -h
 ### Encryption
 | Option | Description |
 |--------|-------------|
-| `-pe, --encryption` | Encryption mode: NONE, PASSWORD |
+| `--encrypt-before-sign` | Encrypt PDF with password before signing |
 | `-opwd, --owner-password` | Owner password |
 | `-upwd, --user-password` | User password |
 | `-pr, --print-right` | Print right: DISALLOW_PRINTING, ALLOW_DEGRADED_PRINTING, ALLOW_PRINTING |
