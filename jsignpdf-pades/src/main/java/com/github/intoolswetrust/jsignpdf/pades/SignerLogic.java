@@ -189,8 +189,10 @@ public class SignerLogic {
                 // Add blank page if requested (before loading as DSSDocument)
                 File effectiveInFile = encryptedTempFile != null ? encryptedTempFile : inFile;
                 if (options.isVisible() && options.isAddBlankPage()) {
-                    LOGGER.info("Adding blank page for signature.");
                     blankPageTempFile = addBlankPage(effectiveInFile);
+                    if (blankPageTempFile == null) {
+                        return false;
+                    }
                     effectiveInFile = blankPageTempFile;
                 }
 
@@ -301,13 +303,17 @@ public class SignerLogic {
     }
 
     private File addBlankPage(File inputFile) throws Exception {
-        File tempFile = File.createTempFile("jsignpdf-blank-", ".pdf");
-        tempFile.deleteOnExit();
         try (PDDocument doc = Loader.loadPDF(inputFile)) {
+            if (!doc.getSignatureDictionaries().isEmpty()) {
+                LOGGER.info("Cannot add blank page to a PDF with existing signatures (would invalidate them).");
+                return null;
+            }
+            File tempFile = File.createTempFile("jsignpdf-blank-", ".pdf");
+            tempFile.deleteOnExit();
             doc.addPage(new PDPage());
             doc.save(tempFile);
+            return tempFile;
         }
-        return tempFile;
     }
 
     private void configureVisibleSignature(PAdESSignatureParameters parameters, Certificate[] chain, Calendar signingCal,
