@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.logging.Level;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -140,7 +141,7 @@ public class KeyStoreUtils {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Failed to read certificate aliases from keystore", e);
             return null;
         }
         return tmpResult.toArray(new String[tmpResult.size()]);
@@ -241,7 +242,7 @@ public class KeyStoreUtils {
             k.load(fin, null);
             return k;
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Failed to load cacerts keystore from " + file, e);
             return null;
         } finally {
             IOUtils.closeQuietly(fin);
@@ -262,7 +263,7 @@ public class KeyStoreUtils {
             }
             return true;
         } catch (KeyStoreException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Failed to copy certificates between keystores", e);
         }
         return false;
     }
