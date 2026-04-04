@@ -12,8 +12,6 @@ import eu.europa.esig.dss.pades.DSSFont;
 
 /**
  * Utilities for handling fonts in visible signature.
- *
- * @author Josef Cacek
  */
 public class FontUtils {
 
@@ -24,7 +22,7 @@ public class FontUtils {
      *
      * @return DSSFont instance or null
      */
-    public static synchronized DSSFont getVisibleSignatureFont(File fontFile) {
+    public static DSSFont getVisibleSignatureFont(File fontFile) {
         DSSFont font = null;
         try (InputStream is = fontFile != null ? new FileInputStream(fontFile)
                 : FontUtils.class.getResourceAsStream(DEFAULT_EMBEDDED_FONT_PATH)) {

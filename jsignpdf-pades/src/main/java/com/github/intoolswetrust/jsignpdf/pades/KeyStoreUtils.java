@@ -204,12 +204,6 @@ public class KeyStoreUtils {
 
     /**
      * Creates empty PKCS12 keystore..
-     *
-     * @return new JKS keystore
-     * @throws KeyStoreException
-     * @throws IOException
-     * @throws CertificateException
-     * @throws NoSuchAlgorithmException
      */
     public static KeyStore createKeyStore()
             throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
