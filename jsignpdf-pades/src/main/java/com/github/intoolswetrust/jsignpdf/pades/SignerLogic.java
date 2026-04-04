@@ -210,6 +210,9 @@ public class SignerLogic {
                 if (useTsa) {
                     LOGGER.info("Creating TSA client.");
                     TimestampDataLoader tsDataLoader = new TimestampDataLoader();
+                    if (options.isInsecureRelaxTls()) {
+                        tsDataLoader.setTrustStrategy((certChain, type) -> true);
+                    }
                     if (tsaConfig.getTsaServerAuthn() == ServerAuthentication.PASSWORD) {
                         URI tsaUri = URI.create(tsaUrl);
                         String tsaUser = tsaConfig.getTsaUser();

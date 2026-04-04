@@ -1,6 +1,7 @@
 package com.github.intoolswetrust.jsignpdf.pades;
 
 import static com.github.intoolswetrust.jsignpdf.pades.Constants.LOGGER;
+import static com.github.intoolswetrust.jsignpdf.pades.Constants.VERSION;
 
 import java.io.File;
 import java.security.Security;
@@ -29,6 +30,10 @@ public class Main {
                 LOGGER.setLevel(Level.OFF);
             }
             boolean cmdUsed = false;
+            if (config.isPrintVersion()) {
+                System.out.println("jsignpdf-pades version " + Constants.VERSION);
+                return;
+            }
             if (config.isPrintHelp()) {
                 cmdUsed = true;
                 jcmd.usage();
