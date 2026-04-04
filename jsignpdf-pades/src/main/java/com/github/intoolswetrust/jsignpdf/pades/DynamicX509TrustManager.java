@@ -1,11 +1,15 @@
 package com.github.intoolswetrust.jsignpdf.pades;
 
+import static com.github.intoolswetrust.jsignpdf.pades.Constants.LOGGER;
+
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.UUID;
+import java.util.logging.Level;
 
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
@@ -55,7 +59,11 @@ public class DynamicX509TrustManager implements X509TrustManager {
                 trustManager.checkServerTrusted(chain, authType);
             } catch (CertificateException cx) {
                 try {
-                    trustStore.setCertificateEntry(UUID.randomUUID().toString(), chain[0]);
+                    X509Certificate cert = chain[0];
+                    LOGGER.warning("Auto-trusting certificate: subject=\""
+                            + cert.getSubjectX500Principal() + "\", SHA-256="
+                            + fingerprintSha256(cert));
+                    trustStore.setCertificateEntry(UUID.randomUUID().toString(), cert);
                     reloadTrustStore();
                 } catch (Exception e) {
                     throw new CertificateException("Unable to recreate TrustManager", e);
@@ -86,6 +94,21 @@ public class DynamicX509TrustManager implements X509TrustManager {
         }
 
         throw new NoSuchAlgorithmException("No X509TrustManager in TrustManagerFactory");
+    }
+
+    private static String fingerprintSha256(X509Certificate cert) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(cert.getEncoded());
+            StringBuilder sb = new StringBuilder(digest.length * 3 - 1);
+            for (int i = 0; i < digest.length; i++) {
+                if (i > 0) sb.append(':');
+                sb.append(String.format("%02X", digest[i]));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            LOGGER.log(Level.FINE, "Unable to compute certificate fingerprint", e);
+            return "<unavailable>";
+        }
     }
 
 }
