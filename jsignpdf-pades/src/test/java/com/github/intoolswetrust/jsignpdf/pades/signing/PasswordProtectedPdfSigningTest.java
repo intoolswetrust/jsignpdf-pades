@@ -32,13 +32,13 @@ import com.github.intoolswetrust.jsignpdf.pades.types.PrintRight;
  */
 public class PasswordProtectedPdfSigningTest extends SigningTestBase {
 
-    private static final String OWNER_PASSWORD = "ownerTestPassword";
-    private static final String USER_PASSWORD = "userTestPassword";
+    private static final char[] OWNER_PASSWORD = "ownerTestPassword".toCharArray();
+    private static final char[] USER_PASSWORD = "userTestPassword".toCharArray();
 
     /** Signs a PDF protected with only an owner password. */
     @Test
     public void testSignWithOwnerPassword() throws Exception {
-        File protectedPdf = createPasswordProtectedPdf(OWNER_PASSWORD, "");
+        File protectedPdf = createPasswordProtectedPdf(new String(OWNER_PASSWORD), "");
         BasicConfig options = createDefaultOptions();
         this.inputFile = protectedPdf;
         options.setPdfOwnerPwd(OWNER_PASSWORD);
@@ -52,7 +52,7 @@ public class PasswordProtectedPdfSigningTest extends SigningTestBase {
     /** Signs a PDF protected with both owner and user passwords. */
     @Test
     public void testSignWithOwnerAndUserPassword() throws Exception {
-        File protectedPdf = createPasswordProtectedPdf(OWNER_PASSWORD, USER_PASSWORD);
+        File protectedPdf = createPasswordProtectedPdf(new String(OWNER_PASSWORD), new String(USER_PASSWORD));
         BasicConfig options = createDefaultOptions();
         this.inputFile = protectedPdf;
         options.setPdfOwnerPwd(OWNER_PASSWORD);
@@ -62,7 +62,7 @@ public class PasswordProtectedPdfSigningTest extends SigningTestBase {
         assertTrue(outputFile.exists(), "Output file should exist");
 
         // The signed output retains PDF encryption, so the validator needs a password
-        ValidationResult result = PdfSignatureValidator.validate(outputFile, OWNER_PASSWORD);
+        ValidationResult result = PdfSignatureValidator.validate(outputFile, new String(OWNER_PASSWORD));
 
         assertTrue(result.signatureValid, "Signature should be valid");
         assertEquals(1, result.signatureCount, "Should have 1 signature");
@@ -71,7 +71,7 @@ public class PasswordProtectedPdfSigningTest extends SigningTestBase {
     /** Signing a password-protected PDF without providing the password should fail. */
     @Test
     public void testSignWithoutPasswordFails() throws Exception {
-        File protectedPdf = createPasswordProtectedPdf(OWNER_PASSWORD, USER_PASSWORD);
+        File protectedPdf = createPasswordProtectedPdf(new String(OWNER_PASSWORD), new String(USER_PASSWORD));
         BasicConfig options = createDefaultOptions();
         this.inputFile = protectedPdf;
         // Do not set pdfOwnerPwd
@@ -83,7 +83,7 @@ public class PasswordProtectedPdfSigningTest extends SigningTestBase {
     /** Full structural validation of a signed password-protected PDF. */
     @Test
     public void testSignedOutputHasValidStructure() throws Exception {
-        File protectedPdf = createPasswordProtectedPdf(OWNER_PASSWORD, "");
+        File protectedPdf = createPasswordProtectedPdf(new String(OWNER_PASSWORD), "");
         BasicConfig options = createDefaultOptions();
         this.inputFile = protectedPdf;
         options.setPdfOwnerPwd(OWNER_PASSWORD);
@@ -114,12 +114,12 @@ public class PasswordProtectedPdfSigningTest extends SigningTestBase {
         assertTrue(outputFile.exists(), "Output file should exist");
 
         // Output should be encrypted — loading without password should fail or report encrypted
-        try (PDDocument doc = Loader.loadPDF(outputFile, OWNER_PASSWORD)) {
+        try (PDDocument doc = Loader.loadPDF(outputFile, new String(OWNER_PASSWORD))) {
             assertTrue(doc.isEncrypted(), "Output PDF should be encrypted");
         }
 
         // Validate signature with the owner password
-        ValidationResult result = PdfSignatureValidator.validate(outputFile, OWNER_PASSWORD);
+        ValidationResult result = PdfSignatureValidator.validate(outputFile, new String(OWNER_PASSWORD));
         assertTrue(result.signatureValid, "Signature should be valid");
         assertEquals(1, result.signatureCount, "Should have 1 signature");
     }
@@ -138,8 +138,8 @@ public class PasswordProtectedPdfSigningTest extends SigningTestBase {
         File secondInput = outputFile;
         File secondOutput = new File(tempDir.toFile(), "output2.pdf");
         options2.setEncryptBeforeSign(true);
-        options2.setPdfOwnerPwd("owner");
-        options2.setPdfUserPwd("user");
+        options2.setPdfOwnerPwd("owner".toCharArray());
+        options2.setPdfUserPwd("user".toCharArray());
 
         boolean success2 = new SignerLogic(options2).signFile(secondInput, secondOutput);
         assertFalse(success2, "Encrypting an already-signed PDF should fail");
@@ -160,13 +160,13 @@ public class PasswordProtectedPdfSigningTest extends SigningTestBase {
         assertTrue(success, "Signing with permissions should succeed");
 
         // Validate signature is cryptographically valid
-        ValidationResult result = PdfSignatureValidator.validate(outputFile, OWNER_PASSWORD);
+        ValidationResult result = PdfSignatureValidator.validate(outputFile, new String(OWNER_PASSWORD));
         assertTrue(result.signatureValid, "Signature should be valid");
         assertEquals(1, result.signatureCount, "Should have 1 signature");
 
         // Load with the user password to see restricted permissions
         // (owner password grants full access per PDF spec)
-        try (PDDocument doc = Loader.loadPDF(outputFile, USER_PASSWORD)) {
+        try (PDDocument doc = Loader.loadPDF(outputFile, new String(USER_PASSWORD))) {
             assertTrue(doc.isEncrypted(), "Output PDF should be encrypted");
             AccessPermission ap = doc.getCurrentAccessPermission();
             assertFalse(ap.canPrint(), "Printing should be disallowed");

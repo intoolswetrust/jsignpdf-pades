@@ -75,9 +75,9 @@ public class TestConstants {
             final BasicConfig options = new BasicConfig();
             options.setKeyStoreType(aKeystore.getKsType());
             options.setKeyStoreFile(new File(aKeystore.getKsFile()));
-            options.setKeyStorePassword(new String(aKeystore.getPasswd()));
+            options.setKeyStorePassword(aKeystore.getPasswd());
             options.setKeyAlias(getAlias());
-            options.setKeyPassword(new String(getPasswd()));
+            options.setKeyPassword(getPasswd());
             return options;
 
         }

@@ -94,7 +94,6 @@ public class SignerLogic {
         try {
             final KeyStore ks = KeyStoreUtils.loadKeyStore(options.getKeyStoreType(), options.getKeyStoreFile(),
                     options.getKeyStorePassword());
-
             String alias = options.getKeyAlias();
             if (StringUtils.isEmpty(alias)) {
                 java.util.Enumeration<String> aliases = ks.aliases();
@@ -107,9 +106,9 @@ public class SignerLogic {
                 }
             }
 
-            char[] keyPasswd = options.getKeyPasswordAsChars();
+            char[] keyPasswd = options.getKeyPassword();
             if (keyPasswd == null || keyPasswd.length == 0) {
-                keyPasswd = options.getKeyStorePasswordAsChars();
+                keyPasswd = options.getKeyStorePassword();
             }
             PrivateKey key = (PrivateKey) ks.getKey(alias, keyPasswd);
             Certificate[] chain = ks.getCertificateChain(alias);
@@ -173,9 +172,9 @@ public class SignerLogic {
                 }
 
                 // Password for encrypted PDFs
-                String ownerPwd = options.getPdfOwnerPwd();
-                if (StringUtils.isNotEmpty(ownerPwd)) {
-                    parameters.setPasswordProtection(ownerPwd.toCharArray());
+                char[] ownerPwd = options.getPdfOwnerPwd();
+                if (ownerPwd != null && ownerPwd.length > 0) {
+                    parameters.setPasswordProtection(ownerPwd);
                 }
 
                 // Encrypt PDF if requested (encrypt-before-sign)
@@ -214,9 +213,9 @@ public class SignerLogic {
                     if (tsaConfig.getTsaServerAuthn() == ServerAuthentication.PASSWORD) {
                         URI tsaUri = URI.create(tsaUrl);
                         String tsaUser = tsaConfig.getTsaUser();
-                        String tsaPassword = tsaConfig.getTsaPassword();
+                        char[] tsaPassword = tsaConfig.getTsaPassword();
                         tsDataLoader.addAuthentication(tsaUri.getHost(), tsaUri.getPort(), null, tsaUser,
-                                tsaPassword != null ? tsaPassword.toCharArray() : null);
+                                tsaPassword);
                     }
                     OnlineTSPSource tspSource = new OnlineTSPSource(tsaUrl, tsDataLoader);
 
@@ -285,9 +284,9 @@ public class SignerLogic {
             }
 
             AccessPermission ap = buildAccessPermission();
-            StandardProtectionPolicy passwordPolicy = new StandardProtectionPolicy(
-                    StringUtils.defaultString(options.getPdfOwnerPwd()), StringUtils.defaultString(options.getPdfUserPwd()),
-                    ap);
+            String encOwnerPwd = options.getPdfOwnerPwd() != null ? new String(options.getPdfOwnerPwd()) : "";
+            String encUserPwd = options.getPdfUserPwd() != null ? new String(options.getPdfUserPwd()) : "";
+            StandardProtectionPolicy passwordPolicy = new StandardProtectionPolicy(encOwnerPwd, encUserPwd, ap);
             passwordPolicy.setEncryptionKeyLength(128);
             doc.protect(passwordPolicy);
 

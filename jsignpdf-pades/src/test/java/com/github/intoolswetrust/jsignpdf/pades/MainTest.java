@@ -87,7 +87,7 @@ public class MainTest {
                 "--pades-level", "BASELINE_T",
                 "file1.pdf", "file2.pdf");
         assertEquals("JKS", config.getKeyStoreType());
-        assertEquals("pass", config.getKeyStorePassword());
+        assertArrayEquals("pass".toCharArray(), config.getKeyStorePassword());
         assertEquals("mykey", config.getKeyAlias());
         assertEquals("Test reason", config.getReason());
         assertEquals("Test location", config.getLocation());
@@ -119,8 +119,8 @@ public class MainTest {
         JCommander jcmd = JCommander.newBuilder().addObject(new Object[]{config, p11config}).build();
         jcmd.parse("--encrypt-before-sign", "-opwd", "owner", "-upwd", "user", "dummy.pdf");
         assertTrue(config.isEncryptBeforeSign());
-        assertEquals("owner", config.getPdfOwnerPwd());
-        assertEquals("user", config.getPdfUserPwd());
+        assertArrayEquals("owner".toCharArray(), config.getPdfOwnerPwd());
+        assertArrayEquals("user".toCharArray(), config.getPdfUserPwd());
     }
 
     @Test
@@ -133,7 +133,7 @@ public class MainTest {
                 "-ta", "PASSWORD", "dummy.pdf");
         assertEquals("http://tsa.example.com", config.getTsaConfig().getTsaServerUrl());
         assertEquals("user", config.getTsaConfig().getTsaUser());
-        assertEquals("pass", config.getTsaConfig().getTsaPassword());
+        assertArrayEquals("pass".toCharArray(), config.getTsaConfig().getTsaPassword());
         assertEquals("1.2.3", config.getTsaConfig().getTsaPolicyOid());
         assertEquals("SHA-256", config.getTsaConfig().getTsaHashAlgorithm());
         assertEquals(com.github.intoolswetrust.jsignpdf.pades.types.ServerAuthentication.PASSWORD,

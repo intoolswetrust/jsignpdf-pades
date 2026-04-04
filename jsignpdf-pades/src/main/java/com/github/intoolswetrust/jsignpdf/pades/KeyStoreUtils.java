@@ -171,7 +171,7 @@ public class KeyStoreUtils {
     }
 
     public static KeyStoreSignatureTokenConnection createKeyStoreSignatureTokenConnection(BasicConfig config) throws IOException {
-        PasswordProtection ksPassword = new PasswordProtection(config.getKeyStorePasswordAsChars());
+        PasswordProtection ksPassword = new PasswordProtection(config.getKeyStorePassword());
         File keyStoreFile = config.getKeyStoreFile();
         KeyStoreSignatureTokenConnection result = null;
         if (keyStoreFile != null) {

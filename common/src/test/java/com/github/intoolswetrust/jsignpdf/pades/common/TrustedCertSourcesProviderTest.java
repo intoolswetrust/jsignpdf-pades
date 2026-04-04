@@ -74,7 +74,7 @@ public class TrustedCertSourcesProviderTest {
     public void testKeystoreFileAddsSource() throws Exception {
         TrustConfig config = new TrustConfig();
         config.setKeystoreFile(new File(KS_FILE));
-        config.setKeystorePassword(KS_PASSWORD);
+        config.setKeystorePassword(KS_PASSWORD.toCharArray());
         config.setKeystoreType(KS_TYPE);
 
         TrustedCertSourcesProvider provider = new TrustedCertSourcesProvider(config);
@@ -105,7 +105,7 @@ public class TrustedCertSourcesProviderTest {
         TrustConfig config = new TrustConfig();
         config.setCertificateFiles(Collections.singletonList(certFile));
         config.setKeystoreFile(new File(KS_FILE));
-        config.setKeystorePassword(KS_PASSWORD);
+        config.setKeystorePassword(KS_PASSWORD.toCharArray());
         config.setKeystoreType(KS_TYPE);
 
         TrustedCertSourcesProvider provider = new TrustedCertSourcesProvider(config);

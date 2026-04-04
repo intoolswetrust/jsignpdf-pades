@@ -64,10 +64,7 @@ public class SSLInitializer  implements Closeable {
         }
 
         if (tsaConfig.getTsaServerAuthn() == ServerAuthentication.CERTIFICATE) {
-            char[] pwd = null;
-            if (StringUtils.isNotEmpty(tsaConfig.getTsaKeyStorePassword())) {
-                pwd = tsaConfig.getTsaKeyStorePassword().toCharArray();
-            }
+            char[] pwd = tsaConfig.getTsaKeyStorePassword();
             LOGGER.info("Initializing KeyManager for TSA authentication");
             final String ksType = StringUtils.defaultIfBlank(tsaConfig.getTsaKeyStoreFileType(), KeyStore.getDefaultType());
             KeyStore keyStore = KeyStoreUtils.loadKeyStore(ksType, tsaConfig.getTsaKeyStoreFile(), pwd);

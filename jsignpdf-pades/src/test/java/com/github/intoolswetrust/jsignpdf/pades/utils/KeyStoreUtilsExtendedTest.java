@@ -93,7 +93,7 @@ public class KeyStoreUtilsExtendedTest {
                 .parse("--disable-validity-check", "--disable-key-usage-check", "--disable-critical-extensions-check");
         config.setKeyStoreType(Keystore.JKS.getKsType());
         config.setKeyStoreFile(new File(Keystore.JKS.getKsFile()));
-        config.setKeyStorePassword(new String(Keystore.JKS.getPasswd()));
+        config.setKeyStorePassword(Keystore.JKS.getPasswd());
 
         String[] aliases = KeyStoreUtils.getKeyAliases(config);
         assertNotNull(aliases);

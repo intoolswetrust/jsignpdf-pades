@@ -110,7 +110,7 @@ public class TimestampSigningTest extends SigningTestBase {
             options.getTsaConfig().setTsaHashAlgorithm("SHA-256");
             options.getTsaConfig().setTsaServerAuthn(ServerAuthentication.PASSWORD);
             options.getTsaConfig().setTsaUser("tsaUser");
-            options.getTsaConfig().setTsaPassword("tsaSecret");
+            options.getTsaConfig().setTsaPassword("tsaSecret".toCharArray());
 
             ValidationResult result = signAndValidate(options);
 
@@ -133,7 +133,7 @@ public class TimestampSigningTest extends SigningTestBase {
             options.getTsaConfig().setTsaHashAlgorithm("SHA-256");
             options.getTsaConfig().setTsaServerAuthn(ServerAuthentication.PASSWORD);
             options.getTsaConfig().setTsaUser("tsaUser");
-            options.getTsaConfig().setTsaPassword("wrongPassword");
+            options.getTsaConfig().setTsaPassword("wrongPassword".toCharArray());
 
             boolean result = new SignerLogic(options).signFile(inputFile, outputFile);
             assertFalse(result, "Signing should fail when TSA authentication fails");

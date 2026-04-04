@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.beust.jcommander.Parameter;
+import com.beust.jcommander.converters.CharArrayConverter;
 
 public class TrustConfig {
 
@@ -21,8 +22,8 @@ public class TrustConfig {
     @Parameter(names = { "--trust-keystore-file" }, description = "File path to a truststore")
     private File keystoreFile;
 
-    @Parameter(names = { "--trust-keystore-password" }, description = "Truststore password")
-    private String keystorePassword;
+    @Parameter(names = { "--trust-keystore-password" }, converter = CharArrayConverter.class, description = "Truststore password")
+    private char[] keystorePassword;
 
     @Parameter(names = { "--trust-keystore-type" }, description = "Truststore type")
     private String keystoreType = KeyStore.getDefaultType();
@@ -62,11 +63,11 @@ public class TrustConfig {
         this.keystoreFile = keystoreFile;
     }
 
-    public String getKeystorePassword() {
+    public char[] getKeystorePassword() {
         return keystorePassword;
     }
 
-    public void setKeystorePassword(String keystorePassword) {
+    public void setKeystorePassword(char[] keystorePassword) {
         this.keystorePassword = keystorePassword;
     }
 

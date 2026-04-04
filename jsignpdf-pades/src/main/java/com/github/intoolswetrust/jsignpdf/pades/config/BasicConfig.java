@@ -6,6 +6,7 @@ import java.util.List;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
+import com.beust.jcommander.converters.CharArrayConverter;
 import com.beust.jcommander.converters.FileConverter;
 
 import com.github.intoolswetrust.jsignpdf.pades.common.TrustConfig;
@@ -43,11 +44,11 @@ public class BasicConfig {
     @Parameter(names = { "--keystore-file", "-ksf" }, description = "Keystore file to be used")
     private File keyStoreFile;
 
-    @Parameter(names = { "--keystore-password", "-ksp" }, description = "KeyStore password")
-    private String keyStorePassword;
+    @Parameter(names = { "--keystore-password", "-ksp" }, converter = CharArrayConverter.class, description = "KeyStore password")
+    private char[] keyStorePassword;
 
-    @Parameter(names = { "--key-password", "-kp" }, description = "Key password")
-    private String keyPassword;
+    @Parameter(names = { "--key-password", "-kp" }, converter = CharArrayConverter.class, description = "Key password")
+    private char[] keyPassword;
 
     @Parameter(names = { "--key-alias", "-ka" }, description = "Key alias to be used for signing")
     private String keyAlias;
@@ -134,11 +135,11 @@ public class BasicConfig {
     @Parameter(names = { "--encrypt-before-sign" }, description = "Encrypt PDF with password before signing")
     private boolean encryptBeforeSign;
 
-    @Parameter(names = { "--owner-password", "-opwd" }, description = "Owner password for encrypted PDF")
-    private String pdfOwnerPwd;
+    @Parameter(names = { "--owner-password", "-opwd" }, converter = CharArrayConverter.class, description = "Owner password for encrypted PDF")
+    private char[] pdfOwnerPwd;
 
-    @Parameter(names = { "--user-password", "-upwd" }, description = "User password for encrypted PDF")
-    private String pdfUserPwd;
+    @Parameter(names = { "--user-password", "-upwd" }, converter = CharArrayConverter.class, description = "User password for encrypted PDF")
+    private char[] pdfUserPwd;
 
     @Parameter(names = { "--print-right", "-pr" }, description = "Printing rights for encrypted PDF")
     private PrintRight rightPrinting;
@@ -217,28 +218,20 @@ public class BasicConfig {
         this.keyStoreFile = keystoreFile;
     }
 
-    public String getKeyStorePassword() {
+    public char[] getKeyStorePassword() {
         return keyStorePassword;
     }
 
-    public void setKeyStorePassword(String keystorePassword) {
+    public void setKeyStorePassword(char[] keystorePassword) {
         this.keyStorePassword = keystorePassword;
     }
 
-    public char[] getKeyStorePasswordAsChars() {
-        return keyStorePassword == null ? null : keyStorePassword.toCharArray();
-    }
-
-    public String getKeyPassword() {
+    public char[] getKeyPassword() {
         return keyPassword;
     }
 
-    public void setKeyPassword(String keyPassword) {
+    public void setKeyPassword(char[] keyPassword) {
         this.keyPassword = keyPassword;
-    }
-
-    public char[] getKeyPasswordAsChars() {
-        return keyPassword == null ? null : keyPassword.toCharArray();
     }
 
     public String getKeyAlias() {
@@ -429,19 +422,19 @@ public class BasicConfig {
         this.encryptBeforeSign = encryptBeforeSign;
     }
 
-    public String getPdfOwnerPwd() {
+    public char[] getPdfOwnerPwd() {
         return pdfOwnerPwd;
     }
 
-    public void setPdfOwnerPwd(String pdfOwnerPwd) {
+    public void setPdfOwnerPwd(char[] pdfOwnerPwd) {
         this.pdfOwnerPwd = pdfOwnerPwd;
     }
 
-    public String getPdfUserPwd() {
+    public char[] getPdfUserPwd() {
         return pdfUserPwd;
     }
 
-    public void setPdfUserPwd(String pdfUserPwd) {
+    public void setPdfUserPwd(char[] pdfUserPwd) {
         this.pdfUserPwd = pdfUserPwd;
     }
 
