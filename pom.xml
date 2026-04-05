@@ -31,7 +31,7 @@
         <commons-lang3.version>3.20.0</commons-lang3.version>
         <commons-io.version>2.21.0</commons-io.version>
 
-        <junit.version>5.12.2</junit.version>
+        <junit.version>6.0.3</junit.version>
         <hamcrest.version>2.2</hamcrest.version>
         <dss.version>6.2</dss.version>
     </properties>
