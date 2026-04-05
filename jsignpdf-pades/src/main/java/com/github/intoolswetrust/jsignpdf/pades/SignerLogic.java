@@ -26,7 +26,6 @@ import javax.naming.ldap.Rdn;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.text.StrSubstitutor;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -388,7 +387,10 @@ public class SignerLogic {
                 replacements.put(SIG_TEXT_PLACEHOLDER_LOCATION, StringUtils.defaultString(options.getLocation()));
                 replacements.put(SIG_TEXT_PLACEHOLDER_REASON, StringUtils.defaultString(options.getReason()));
                 replacements.put(SIG_TEXT_PLACEHOLDER_CONTACT, StringUtils.defaultString(options.getContact()));
-                signatureText = StrSubstitutor.replace(visConfig.getText(), replacements);
+                signatureText = visConfig.getText();
+                for (Map.Entry<String, String> e : replacements.entrySet()) {
+                    signatureText = signatureText.replace("${" + e.getKey() + "}", e.getValue());
+                }
             } else {
                 final StringBuilder buf = new StringBuilder();
                 buf.append("Signed by: ").append(signer).append('\n');
