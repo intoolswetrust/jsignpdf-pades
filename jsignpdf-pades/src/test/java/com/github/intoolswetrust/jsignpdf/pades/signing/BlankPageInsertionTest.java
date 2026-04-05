@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import com.github.intoolswetrust.jsignpdf.pades.SignerLogic;
 import com.github.intoolswetrust.jsignpdf.pades.config.BasicConfig;
+import com.github.intoolswetrust.jsignpdf.pades.config.VisibleSignatureConfig;
 import com.github.intoolswetrust.jsignpdf.pades.signing.validation.PdfSignatureValidator.ValidationResult;
 
 public class BlankPageInsertionTest extends SigningTestBase {
@@ -20,12 +21,13 @@ public class BlankPageInsertionTest extends SigningTestBase {
         try (PDDocument doc = Loader.loadPDF(inputFile)) {
             originalPageCount = doc.getNumberOfPages();
         }
-        options.setVisible(true);
-        options.setAddBlankPage(true);
-        options.setPositionLLX(50);
-        options.setPositionLLY(50);
-        options.setPositionURX(250);
-        options.setPositionURY(120);
+        VisibleSignatureConfig visConfig = options.getVisibleSignatureConfig();
+        visConfig.setVisible(true);
+        visConfig.setAddBlankPage(true);
+        visConfig.setPositionLLX(50);
+        visConfig.setPositionLLY(50);
+        visConfig.setPositionURX(250);
+        visConfig.setPositionURY(120);
 
         ValidationResult result = signAndValidate(options);
 
@@ -40,12 +42,13 @@ public class BlankPageInsertionTest extends SigningTestBase {
     @Test
     void testBlankPageSignatureOnLastPage() throws Exception {
         BasicConfig options = createDefaultOptions();
-        options.setVisible(true);
-        options.setAddBlankPage(true);
-        options.setPositionLLX(50);
-        options.setPositionLLY(50);
-        options.setPositionURX(250);
-        options.setPositionURY(120);
+        VisibleSignatureConfig visConfig = options.getVisibleSignatureConfig();
+        visConfig.setVisible(true);
+        visConfig.setAddBlankPage(true);
+        visConfig.setPositionLLX(50);
+        visConfig.setPositionLLY(50);
+        visConfig.setPositionURX(250);
+        visConfig.setPositionURY(120);
 
         ValidationResult result = signAndValidate(options);
 
@@ -69,7 +72,7 @@ public class BlankPageInsertionTest extends SigningTestBase {
             originalPageCount = doc.getNumberOfPages();
         }
 
-        options.setAddBlankPage(true); // but visible is false
+        options.getVisibleSignatureConfig().setAddBlankPage(true); // but visible is false
 
         boolean success = new SignerLogic(options).signFile(inputFile, outputFile);
         assertTrue(success, "Signing should succeed");
@@ -83,13 +86,14 @@ public class BlankPageInsertionTest extends SigningTestBase {
     @Test
     void testBlankPageWithCustomText() throws Exception {
         BasicConfig options = createDefaultOptions();
-        options.setVisible(true);
-        options.setAddBlankPage(true);
-        options.setPositionLLX(50);
-        options.setPositionLLY(50);
-        options.setPositionURX(300);
-        options.setPositionURY(150);
-        options.setText("Signed on blank page by ${signer}");
+        VisibleSignatureConfig visConfig = options.getVisibleSignatureConfig();
+        visConfig.setVisible(true);
+        visConfig.setAddBlankPage(true);
+        visConfig.setPositionLLX(50);
+        visConfig.setPositionLLY(50);
+        visConfig.setPositionURX(300);
+        visConfig.setPositionURY(150);
+        visConfig.setText("Signed on blank page by ${signer}");
 
         ValidationResult result = signAndValidate(options);
 

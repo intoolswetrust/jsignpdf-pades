@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
 import com.github.intoolswetrust.jsignpdf.pades.config.BasicConfig;
+import com.github.intoolswetrust.jsignpdf.pades.config.VisibleSignatureConfig;
 import com.github.intoolswetrust.jsignpdf.pades.signing.validation.PdfSignatureValidator.ValidationResult;
 
 /**
@@ -29,12 +30,13 @@ public class VisibleSignatureSigningTest extends SigningTestBase {
     @Test
     public void testVisibleWithPosition() throws Exception {
         BasicConfig options = createDefaultOptions();
-        options.setVisible(true);
-        options.setPage(1);
-        options.setPositionLLX(50);
-        options.setPositionLLY(60);
-        options.setPositionURX(200);
-        options.setPositionURY(110);
+        VisibleSignatureConfig visConfig = options.getVisibleSignatureConfig();
+        visConfig.setVisible(true);
+        visConfig.setPage(1);
+        visConfig.setPositionLLX(50);
+        visConfig.setPositionLLY(60);
+        visConfig.setPositionURX(200);
+        visConfig.setPositionURY(110);
         ValidationResult result = signAndValidate(options);
 
         assertTrue(result.signatureValid, "Signature should be valid");
@@ -50,15 +52,16 @@ public class VisibleSignatureSigningTest extends SigningTestBase {
     @Test
     public void testVisibleWithCustomL2Text() throws Exception {
         BasicConfig options = createDefaultOptions();
-        options.setVisible(true);
-        options.setPage(1);
-        options.setPositionLLX(50);
-        options.setPositionLLY(50);
-        options.setPositionURX(250);
-        options.setPositionURY(120);
+        VisibleSignatureConfig visConfig = options.getVisibleSignatureConfig();
+        visConfig.setVisible(true);
+        visConfig.setPage(1);
+        visConfig.setPositionLLX(50);
+        visConfig.setPositionLLY(50);
+        visConfig.setPositionURX(250);
+        visConfig.setPositionURY(120);
         options.setReason("TestReason");
         options.setLocation("TestLocation");
-        options.setText("Signed by ${signer}, reason: ${reason}, loc: ${location}");
+        visConfig.setText("Signed by ${signer}, reason: ${reason}, loc: ${location}");
         ValidationResult result = signAndValidate(options);
 
         assertTrue(result.signatureValid, "Signature should be valid");
@@ -77,16 +80,17 @@ public class VisibleSignatureSigningTest extends SigningTestBase {
     @Test
     public void testVisibleWithAllPlaceholders() throws Exception {
         BasicConfig options = createDefaultOptions();
-        options.setVisible(true);
-        options.setPage(1);
-        options.setPositionLLX(10);
-        options.setPositionLLY(10);
-        options.setPositionURX(300);
-        options.setPositionURY(150);
+        VisibleSignatureConfig visConfig = options.getVisibleSignatureConfig();
+        visConfig.setVisible(true);
+        visConfig.setPage(1);
+        visConfig.setPositionLLX(10);
+        visConfig.setPositionLLY(10);
+        visConfig.setPositionURX(300);
+        visConfig.setPositionURY(150);
         options.setReason("AllReason");
         options.setLocation("AllLocation");
         options.setContact("all@contact.com");
-        options.setText("S:${signer} R:${reason} L:${location} C:${contact} T:${timestamp}");
+        visConfig.setText("S:${signer} R:${reason} L:${location} C:${contact} T:${timestamp}");
         ValidationResult result = signAndValidate(options);
 
         assertTrue(result.signatureValid, "Signature should be valid");
@@ -102,12 +106,13 @@ public class VisibleSignatureSigningTest extends SigningTestBase {
     @Test
     public void testDefaultL2TextContainsSignerInfo() throws Exception {
         BasicConfig options = createDefaultOptions();
-        options.setVisible(true);
-        options.setPage(1);
-        options.setPositionLLX(50);
-        options.setPositionLLY(50);
-        options.setPositionURX(250);
-        options.setPositionURY(120);
+        VisibleSignatureConfig visConfig = options.getVisibleSignatureConfig();
+        visConfig.setVisible(true);
+        visConfig.setPage(1);
+        visConfig.setPositionLLX(50);
+        visConfig.setPositionLLY(50);
+        visConfig.setPositionURX(250);
+        visConfig.setPositionURY(120);
         ValidationResult result = signAndValidate(options);
 
         assertTrue(result.signatureValid, "Signature should be valid");

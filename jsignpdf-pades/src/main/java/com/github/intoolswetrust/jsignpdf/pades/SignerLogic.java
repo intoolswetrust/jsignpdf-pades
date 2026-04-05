@@ -37,6 +37,7 @@ import org.apache.pdfbox.pdmodel.encryption.StandardProtectionPolicy;
 import com.github.intoolswetrust.jsignpdf.pades.config.BasicConfig;
 import com.github.intoolswetrust.jsignpdf.pades.config.PadesLevel;
 import com.github.intoolswetrust.jsignpdf.pades.config.TsaConfig;
+import com.github.intoolswetrust.jsignpdf.pades.config.VisibleSignatureConfig;
 import com.github.intoolswetrust.jsignpdf.pades.types.CertificationLevel;
 import com.github.intoolswetrust.jsignpdf.pades.types.PrintRight;
 import com.github.intoolswetrust.jsignpdf.pades.types.ServerAuthentication;
@@ -88,6 +89,7 @@ public class SignerLogic {
             return false;
         }
 
+        final VisibleSignatureConfig visConfig = options.getVisibleSignatureConfig();
         boolean finished = false;
         File encryptedTempFile = null;
         File blankPageTempFile = null;
@@ -188,7 +190,7 @@ public class SignerLogic {
 
                 // Add blank page if requested (before loading as DSSDocument)
                 File effectiveInFile = encryptedTempFile != null ? encryptedTempFile : inFile;
-                if (options.isVisible() && options.isAddBlankPage()) {
+                if (visConfig.isVisible() && visConfig.isAddBlankPage()) {
                     blankPageTempFile = addBlankPage(effectiveInFile);
                     if (blankPageTempFile == null) {
                         return false;
@@ -200,7 +202,7 @@ public class SignerLogic {
                 DSSDocument document = new FileDocument(effectiveInFile);
 
                 // Handle visible signature
-                if (options.isVisible()) {
+                if (visConfig.isVisible()) {
                     LOGGER.info("Configuring visible signature.");
                     configureVisibleSignature(parameters, chain, signingCal, effectiveInFile);
                 }
@@ -318,15 +320,15 @@ public class SignerLogic {
 
     private void configureVisibleSignature(PAdESSignatureParameters parameters, Certificate[] chain, Calendar signingCal,
             File inFile) throws Exception {
-
+        final VisibleSignatureConfig visConfig = options.getVisibleSignatureConfig();
         SignatureImageParameters imageParams = new SignatureImageParameters();
 
-        int page = options.getPage();
+        int page = visConfig.getPage();
         float pageWidth;
         float pageHeight;
         try (PDDocument pdDoc = Loader.loadPDF(inFile)) {
             int totalPages = pdDoc.getNumberOfPages();
-            if (options.isAddBlankPage()) {
+            if (visConfig.isAddBlankPage()) {
                 // Blank page was added as last page — use it
                 page = totalPages;
             } else if (page < 1 || page > totalPages) {
@@ -344,10 +346,10 @@ public class SignerLogic {
             }
         }
 
-        float llx = fixPosition(options.getPositionLLX(), pageWidth);
-        float lly = fixPosition(options.getPositionLLY(), pageHeight);
-        float urx = fixPosition(options.getPositionURX(), pageWidth);
-        float ury = fixPosition(options.getPositionURY(), pageHeight);
+        float llx = fixPosition(visConfig.getPositionLLX(), pageWidth);
+        float lly = fixPosition(visConfig.getPositionLLY(), pageHeight);
+        float urx = fixPosition(visConfig.getPositionURX(), pageWidth);
+        float ury = fixPosition(visConfig.getPositionURY(), pageHeight);
         float width = urx - llx;
         float height = ury - lly;
 
@@ -360,14 +362,14 @@ public class SignerLogic {
         imageParams.setFieldParameters(fieldParams);
 
         // Set image if provided
-        final String bgImgPath = options.getBgImgPath();
+        final String bgImgPath = visConfig.getBgImgPath();
         if (bgImgPath != null) {
             LOGGER.info("Setting image: " + bgImgPath);
             imageParams.setImage(new FileDocument(bgImgPath));
         }
 
         // Image-only mode: skip text parameters
-        if (!options.isImageOnly()) {
+        if (!visConfig.isImageOnly()) {
             LOGGER.info("Setting signature text.");
             X509Certificate signerCert = (X509Certificate) chain[0];
             String signer = extractCN(signerCert);
@@ -378,7 +380,7 @@ public class SignerLogic {
             final String timestamp = new SimpleDateFormat("yyyy.MM.dd HH:mm:ss z").format(signingCal.getTime());
 
             String signatureText;
-            if (options.getText() != null) {
+            if (visConfig.getText() != null) {
                 final Map<String, String> replacements = new HashMap<>();
                 replacements.put(SIG_TEXT_PLACEHOLDER_SIGNER, StringUtils.defaultString(signer));
                 replacements.put(SIG_TEXT_PLACEHOLDER_CERTIFICATE, certificate);
@@ -386,7 +388,7 @@ public class SignerLogic {
                 replacements.put(SIG_TEXT_PLACEHOLDER_LOCATION, StringUtils.defaultString(options.getLocation()));
                 replacements.put(SIG_TEXT_PLACEHOLDER_REASON, StringUtils.defaultString(options.getReason()));
                 replacements.put(SIG_TEXT_PLACEHOLDER_CONTACT, StringUtils.defaultString(options.getContact()));
-                signatureText = StrSubstitutor.replace(options.getText(), replacements);
+                signatureText = StrSubstitutor.replace(visConfig.getText(), replacements);
             } else {
                 final StringBuilder buf = new StringBuilder();
                 buf.append("Signed by: ").append(signer).append('\n');
@@ -401,9 +403,9 @@ public class SignerLogic {
             SignatureImageTextParameters textParams = new SignatureImageTextParameters();
             textParams.setText(signatureText);
 
-            DSSFont font = FontUtils.getVisibleSignatureFont(options.getFontFile());
+            DSSFont font = FontUtils.getVisibleSignatureFont(visConfig.getFontFile());
             if (font != null) {
-                float fontSize = options.getTextFontSize();
+                float fontSize = visConfig.getTextFontSize();
                 if (fontSize <= 0f) {
                     fontSize = 10.0f;
                 }

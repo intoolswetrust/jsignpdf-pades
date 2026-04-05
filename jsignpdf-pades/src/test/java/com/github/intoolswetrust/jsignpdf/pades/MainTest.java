@@ -14,6 +14,7 @@ import org.junit.jupiter.api.io.TempDir;
 import com.beust.jcommander.JCommander;
 import com.github.intoolswetrust.jsignpdf.pades.config.BasicConfig;
 import com.github.intoolswetrust.jsignpdf.pades.config.Pkcs11Config;
+import com.github.intoolswetrust.jsignpdf.pades.config.VisibleSignatureConfig;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -102,14 +103,15 @@ public class MainTest {
         JCommander jcmd = JCommander.newBuilder().addObject(new Object[]{config, p11config}).build();
         jcmd.parse("-V", "-pg", "2", "-llx", "50.5", "-lly", "60", "-urx", "200", "-ury", "110",
                 "--text", "Custom text", "-fs", "14.0", "dummy.pdf");
-        assertTrue(config.isVisible());
-        assertEquals(2, config.getPage());
-        assertEquals(50.5f, config.getPositionLLX(), 0.01f);
-        assertEquals(60f, config.getPositionLLY(), 0.01f);
-        assertEquals(200f, config.getPositionURX(), 0.01f);
-        assertEquals(110f, config.getPositionURY(), 0.01f);
-        assertEquals("Custom text", config.getText());
-        assertEquals(14.0f, config.getTextFontSize(), 0.01f);
+        VisibleSignatureConfig visConfig = config.getVisibleSignatureConfig();
+        assertTrue(visConfig.isVisible());
+        assertEquals(2, visConfig.getPage());
+        assertEquals(50.5f, visConfig.getPositionLLX(), 0.01f);
+        assertEquals(60f, visConfig.getPositionLLY(), 0.01f);
+        assertEquals(200f, visConfig.getPositionURX(), 0.01f);
+        assertEquals(110f, visConfig.getPositionURY(), 0.01f);
+        assertEquals("Custom text", visConfig.getText());
+        assertEquals(14.0f, visConfig.getTextFontSize(), 0.01f);
     }
 
     @Test

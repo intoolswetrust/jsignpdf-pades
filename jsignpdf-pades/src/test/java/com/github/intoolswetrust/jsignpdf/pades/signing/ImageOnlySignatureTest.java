@@ -10,6 +10,7 @@ import javax.imageio.ImageIO;
 import org.junit.jupiter.api.Test;
 
 import com.github.intoolswetrust.jsignpdf.pades.config.BasicConfig;
+import com.github.intoolswetrust.jsignpdf.pades.config.VisibleSignatureConfig;
 import com.github.intoolswetrust.jsignpdf.pades.signing.validation.PdfSignatureValidator.ValidationResult;
 
 public class ImageOnlySignatureTest extends SigningTestBase {
@@ -32,14 +33,15 @@ public class ImageOnlySignatureTest extends SigningTestBase {
         File logo = createTestImage();
 
         BasicConfig options = createDefaultOptions();
-        options.setVisible(true);
-        options.setImageOnly(true);
-        options.setPage(1);
-        options.setPositionLLX(50);
-        options.setPositionLLY(50);
-        options.setPositionURX(200);
-        options.setPositionURY(120);
-        options.setBgImgPath(logo.getAbsolutePath());
+        VisibleSignatureConfig visConfig = options.getVisibleSignatureConfig();
+        visConfig.setVisible(true);
+        visConfig.setImageOnly(true);
+        visConfig.setPage(1);
+        visConfig.setPositionLLX(50);
+        visConfig.setPositionLLY(50);
+        visConfig.setPositionURX(200);
+        visConfig.setPositionURY(120);
+        visConfig.setBgImgPath(logo.getAbsolutePath());
 
         ValidationResult result = signAndValidate(options);
 
@@ -53,14 +55,15 @@ public class ImageOnlySignatureTest extends SigningTestBase {
         File logo = createTestImage();
 
         BasicConfig options = createDefaultOptions();
-        options.setVisible(true);
-        options.setImageOnly(true);
-        options.setPage(1);
-        options.setPositionLLX(50);
-        options.setPositionLLY(50);
-        options.setPositionURX(200);
-        options.setPositionURY(120);
-        options.setBgImgPath(logo.getAbsolutePath());
+        VisibleSignatureConfig visConfig = options.getVisibleSignatureConfig();
+        visConfig.setVisible(true);
+        visConfig.setImageOnly(true);
+        visConfig.setPage(1);
+        visConfig.setPositionLLX(50);
+        visConfig.setPositionLLY(50);
+        visConfig.setPositionURX(200);
+        visConfig.setPositionURY(120);
+        visConfig.setBgImgPath(logo.getAbsolutePath());
         options.setReason("ShouldNotAppear");
 
         ValidationResult result = signAndValidate(options);
@@ -79,13 +82,14 @@ public class ImageOnlySignatureTest extends SigningTestBase {
     void testImageOnlyWithoutImage() throws Exception {
         // Image-only without an actual image — signature is valid but has no visible content
         BasicConfig options = createDefaultOptions();
-        options.setVisible(true);
-        options.setImageOnly(true);
-        options.setPage(1);
-        options.setPositionLLX(50);
-        options.setPositionLLY(50);
-        options.setPositionURX(200);
-        options.setPositionURY(120);
+        VisibleSignatureConfig visConfig = options.getVisibleSignatureConfig();
+        visConfig.setVisible(true);
+        visConfig.setImageOnly(true);
+        visConfig.setPage(1);
+        visConfig.setPositionLLX(50);
+        visConfig.setPositionLLY(50);
+        visConfig.setPositionURX(200);
+        visConfig.setPositionURY(120);
         // No bgImgPath set — no image and no text means empty appearance
 
         ValidationResult result = signAndValidate(options);
@@ -97,12 +101,13 @@ public class ImageOnlySignatureTest extends SigningTestBase {
     void testNonImageOnlyStillHasText() throws Exception {
         // Verify that without imageOnly flag, text is present
         BasicConfig options = createDefaultOptions();
-        options.setVisible(true);
-        options.setPage(1);
-        options.setPositionLLX(50);
-        options.setPositionLLY(50);
-        options.setPositionURX(250);
-        options.setPositionURY(120);
+        VisibleSignatureConfig visConfig = options.getVisibleSignatureConfig();
+        visConfig.setVisible(true);
+        visConfig.setPage(1);
+        visConfig.setPositionLLX(50);
+        visConfig.setPositionLLY(50);
+        visConfig.setPositionURX(250);
+        visConfig.setPositionURY(120);
         options.setReason("TextShouldAppear");
 
         ValidationResult result = signAndValidate(options);
@@ -118,14 +123,15 @@ public class ImageOnlySignatureTest extends SigningTestBase {
         File logo = createTestImage();
 
         BasicConfig options = createDefaultOptions();
-        options.setVisible(true);
-        options.setImageOnly(true);
-        options.setAddBlankPage(true);
-        options.setPositionLLX(100);
-        options.setPositionLLY(300);
-        options.setPositionURX(300);
-        options.setPositionURY(400);
-        options.setBgImgPath(logo.getAbsolutePath());
+        VisibleSignatureConfig visConfig = options.getVisibleSignatureConfig();
+        visConfig.setVisible(true);
+        visConfig.setImageOnly(true);
+        visConfig.setAddBlankPage(true);
+        visConfig.setPositionLLX(100);
+        visConfig.setPositionLLY(300);
+        visConfig.setPositionURX(300);
+        visConfig.setPositionURY(400);
+        visConfig.setBgImgPath(logo.getAbsolutePath());
 
         ValidationResult result = signAndValidate(options);
 

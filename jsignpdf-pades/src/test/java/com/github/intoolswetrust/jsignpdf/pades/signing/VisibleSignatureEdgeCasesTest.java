@@ -11,6 +11,7 @@ import javax.imageio.ImageIO;
 import org.junit.jupiter.api.Test;
 
 import com.github.intoolswetrust.jsignpdf.pades.config.BasicConfig;
+import com.github.intoolswetrust.jsignpdf.pades.config.VisibleSignatureConfig;
 import com.github.intoolswetrust.jsignpdf.pades.signing.validation.PdfSignatureValidator.ValidationResult;
 
 /**
@@ -21,13 +22,14 @@ public class VisibleSignatureEdgeCasesTest extends SigningTestBase {
     @Test
     public void testVisibleSignatureWithSignerNameOverride() throws Exception {
         BasicConfig options = createDefaultOptions();
-        options.setVisible(true);
+        VisibleSignatureConfig visConfig = options.getVisibleSignatureConfig();
+        visConfig.setVisible(true);
         options.setSignerName("Custom Signer Name");
-        options.setText("Signed by: ${signer}");
-        options.setPositionLLX(0);
-        options.setPositionLLY(0);
-        options.setPositionURX(200);
-        options.setPositionURY(50);
+        visConfig.setText("Signed by: ${signer}");
+        visConfig.setPositionLLX(0);
+        visConfig.setPositionLLY(0);
+        visConfig.setPositionURX(200);
+        visConfig.setPositionURY(50);
 
         ValidationResult result = signAndValidate(options);
         assertEquals(1, result.signatureCount, "Should have 1 signature");
@@ -37,12 +39,13 @@ public class VisibleSignatureEdgeCasesTest extends SigningTestBase {
     @Test
     public void testVisibleSignatureWithPageBeyondTotal() throws Exception {
         BasicConfig options = createDefaultOptions();
-        options.setVisible(true);
-        options.setPage(999);
-        options.setPositionLLX(0);
-        options.setPositionLLY(0);
-        options.setPositionURX(200);
-        options.setPositionURY(50);
+        VisibleSignatureConfig visConfig = options.getVisibleSignatureConfig();
+        visConfig.setVisible(true);
+        visConfig.setPage(999);
+        visConfig.setPositionLLX(0);
+        visConfig.setPositionLLY(0);
+        visConfig.setPositionURX(200);
+        visConfig.setPositionURY(50);
 
         ValidationResult result = signAndValidate(options);
         assertEquals(1, result.signatureCount, "Should have 1 signature");
@@ -52,12 +55,13 @@ public class VisibleSignatureEdgeCasesTest extends SigningTestBase {
     @Test
     public void testVisibleSignatureWithPageZero() throws Exception {
         BasicConfig options = createDefaultOptions();
-        options.setVisible(true);
-        options.setPage(0);
-        options.setPositionLLX(0);
-        options.setPositionLLY(0);
-        options.setPositionURX(200);
-        options.setPositionURY(50);
+        VisibleSignatureConfig visConfig = options.getVisibleSignatureConfig();
+        visConfig.setVisible(true);
+        visConfig.setPage(0);
+        visConfig.setPositionLLX(0);
+        visConfig.setPositionLLY(0);
+        visConfig.setPositionURX(200);
+        visConfig.setPositionURY(50);
 
         ValidationResult result = signAndValidate(options);
         assertEquals(1, result.signatureCount, "Should have 1 signature");
@@ -67,13 +71,14 @@ public class VisibleSignatureEdgeCasesTest extends SigningTestBase {
     @Test
     public void testVisibleSignatureWithReasonAndLocation() throws Exception {
         BasicConfig options = createDefaultOptions();
-        options.setVisible(true);
+        VisibleSignatureConfig visConfig = options.getVisibleSignatureConfig();
+        visConfig.setVisible(true);
         options.setReason("Test Reason");
         options.setLocation("Test Location");
-        options.setPositionLLX(0);
-        options.setPositionLLY(0);
-        options.setPositionURX(200);
-        options.setPositionURY(50);
+        visConfig.setPositionLLX(0);
+        visConfig.setPositionLLY(0);
+        visConfig.setPositionURX(200);
+        visConfig.setPositionURY(50);
 
         ValidationResult result = signAndValidate(options);
         assertEquals(1, result.signatureCount, "Should have 1 signature");
@@ -83,11 +88,12 @@ public class VisibleSignatureEdgeCasesTest extends SigningTestBase {
     @Test
     public void testVisibleSignatureWithBackgroundImage() throws Exception {
         BasicConfig options = createDefaultOptions();
-        options.setVisible(true);
-        options.setPositionLLX(0);
-        options.setPositionLLY(0);
-        options.setPositionURX(200);
-        options.setPositionURY(50);
+        VisibleSignatureConfig visConfig = options.getVisibleSignatureConfig();
+        visConfig.setVisible(true);
+        visConfig.setPositionLLX(0);
+        visConfig.setPositionLLY(0);
+        visConfig.setPositionURX(200);
+        visConfig.setPositionURY(50);
 
         // Create a minimal 1x1 PNG in the temp directory
         File bgImage = new File(tempDir.toFile(), "bg.png");
@@ -95,7 +101,7 @@ public class VisibleSignatureEdgeCasesTest extends SigningTestBase {
         img.setRGB(0, 0, 0xFFFFFF);
         ImageIO.write(img, "png", bgImage);
 
-        options.setBgImgPath(bgImage.getAbsolutePath());
+        visConfig.setBgImgPath(bgImage.getAbsolutePath());
 
         ValidationResult result = signAndValidate(options);
         assertEquals(1, result.signatureCount, "Should have 1 signature");
