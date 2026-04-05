@@ -29,7 +29,7 @@ mvn clean test                    # Build and test all modules
 mvn package                       # Build fat JARs
 ```
 
-Java 11+ required. Tests use JUnit 5.
+Java 17+ required. Tests use JUnit 5.
 
 ## Key Classes
 

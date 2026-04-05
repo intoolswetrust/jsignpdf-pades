@@ -29,7 +29,7 @@ A Java CLI application and library for signing and validating PDF files using PA
 
 ## Requirements
 
-- Java 11 or later
+- Java 17 or later
 - Maven 3.6+ (for building)
 
 ## Building
