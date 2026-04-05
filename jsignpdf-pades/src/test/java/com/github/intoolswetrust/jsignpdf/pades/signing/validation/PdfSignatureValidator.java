@@ -248,10 +248,9 @@ public class PdfSignatureValidator {
             return;
         }
         for (PDField field : acroForm.getFields()) {
-            if (!(field instanceof PDSignatureField)) {
+            if (!(field instanceof PDSignatureField sigField)) {
                 continue;
             }
-            PDSignatureField sigField = (PDSignatureField) field;
             PDSignature fieldSig = sigField.getSignature();
             if (fieldSig == null || fieldSig.getCOSObject() != sig.getCOSObject()) {
                 continue;
@@ -294,24 +293,22 @@ public class PdfSignatureValidator {
         try {
             COSDictionary sigDict = sig.getCOSObject();
             COSBase refBase = sigDict.getDictionaryObject(COSName.getPDFName("Reference"));
-            if (!(refBase instanceof COSArray)) {
+            if (!(refBase instanceof COSArray referenceArray)) {
                 return;
             }
-            COSArray referenceArray = (COSArray) refBase;
             for (int i = 0; i < referenceArray.size(); i++) {
                 COSBase entryBase = referenceArray.getObject(i);
-                if (!(entryBase instanceof COSDictionary)) {
+                if (!(entryBase instanceof COSDictionary ref)) {
                     continue;
                 }
-                COSDictionary ref = (COSDictionary) entryBase;
                 COSName transformMethod = (COSName) ref.getDictionaryObject(COSName.getPDFName("TransformMethod"));
                 if (COSName.getPDFName("DocMDP").equals(transformMethod)) {
                     result.isCertified = true;
                     COSBase paramsBase = ref.getDictionaryObject(COSName.getPDFName("TransformParams"));
-                    if (paramsBase instanceof COSDictionary) {
-                        COSBase pValue = ((COSDictionary) paramsBase).getDictionaryObject(COSName.getPDFName("P"));
-                        if (pValue instanceof COSInteger) {
-                            result.docMdpPermission = ((COSInteger) pValue).intValue();
+                    if (paramsBase instanceof COSDictionary params) {
+                        COSBase pValue = params.getDictionaryObject(COSName.getPDFName("P"));
+                        if (pValue instanceof COSInteger p) {
+                            result.docMdpPermission = p.intValue();
                         }
                     }
                     return;
@@ -350,29 +347,28 @@ public class PdfSignatureValidator {
 
         for (int i = 0; i < tokens.size(); i++) {
             Object token = tokens.get(i);
-            if (!(token instanceof Operator)) {
+            if (!(token instanceof Operator op)) {
                 continue;
             }
-            String opName = ((Operator) token).getName();
+            String opName = op.getName();
             if ("Tf".equals(opName) && i >= 2) {
                 // /FontName fontSize Tf
                 Object fontNameObj = tokens.get(i - 2);
-                if (fontNameObj instanceof COSName && resources != null) {
-                    currentFont = resources.getFont((COSName) fontNameObj);
+                if (fontNameObj instanceof COSName fontName && resources != null) {
+                    currentFont = resources.getFont(fontName);
                 }
             } else if (("Tj".equals(opName) || "'".equals(opName) || "\"".equals(opName)) && i > 0) {
                 Object prev = tokens.get(i - 1);
-                if (prev instanceof COSString) {
-                    text.append(decodeString((COSString) prev, currentFont));
+                if (prev instanceof COSString cosString) {
+                    text.append(decodeString(cosString, currentFont));
                 }
             } else if ("TJ".equals(opName) && i > 0) {
                 Object prev = tokens.get(i - 1);
-                if (prev instanceof COSArray) {
-                    COSArray array = (COSArray) prev;
+                if (prev instanceof COSArray array) {
                     for (int j = 0; j < array.size(); j++) {
                         COSBase item = array.get(j);
-                        if (item instanceof COSString) {
-                            text.append(decodeString((COSString) item, currentFont));
+                        if (item instanceof COSString cosString) {
+                            text.append(decodeString(cosString, currentFont));
                         }
                     }
                 }
@@ -383,8 +379,8 @@ public class PdfSignatureValidator {
         if (resources != null) {
             for (COSName name : resources.getXObjectNames()) {
                 PDXObject xObject = resources.getXObject(name);
-                if (xObject instanceof PDFormXObject) {
-                    text.append(extractText((PDFormXObject) xObject));
+                if (xObject instanceof PDFormXObject form) {
+                    text.append(extractText(form));
                 }
             }
         }
