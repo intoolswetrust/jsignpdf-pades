@@ -19,15 +19,11 @@ public enum CertificationLevel {
     }
 
     public CertificationPermission toDssCertificationPermission() {
-        switch (this) {
-            case CERTIFIED_NO_CHANGES_ALLOWED:
-                return CertificationPermission.NO_CHANGE_PERMITTED;
-            case CERTIFIED_FORM_FILLING:
-                return CertificationPermission.MINIMAL_CHANGES_PERMITTED;
-            case CERTIFIED_FORM_FILLING_AND_ANNOTATIONS:
-                return CertificationPermission.CHANGES_PERMITTED;
-            default:
-                return null;
-        }
+        return switch (this) {
+            case CERTIFIED_NO_CHANGES_ALLOWED -> CertificationPermission.NO_CHANGE_PERMITTED;
+            case CERTIFIED_FORM_FILLING -> CertificationPermission.MINIMAL_CHANGES_PERMITTED;
+            case CERTIFIED_FORM_FILLING_AND_ANNOTATIONS -> CertificationPermission.CHANGES_PERMITTED;
+            default -> null;
+        };
     }
 }

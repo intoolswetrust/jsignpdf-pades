@@ -11,13 +11,12 @@ import eu.europa.esig.dss.simplereport.SimpleReport;
 public class ValidationOutput {
 
     public static String format(ValidationResult result, OutputFormat format, boolean verbose) {
-        switch (format) {
-            case XML:  return result.getXmlSimpleReport();
-            case ETSI: return result.getXmlEtsiReport();
-            case JSON: return formatJson(result);
-            case TEXT:
-            default:   return formatText(result, verbose);
-        }
+        return switch (format) {
+            case XML  -> result.getXmlSimpleReport();
+            case ETSI -> result.getXmlEtsiReport();
+            case JSON -> formatJson(result);
+            case TEXT  -> formatText(result, verbose);
+        };
     }
 
     private static String formatText(ValidationResult result, boolean verbose) {
