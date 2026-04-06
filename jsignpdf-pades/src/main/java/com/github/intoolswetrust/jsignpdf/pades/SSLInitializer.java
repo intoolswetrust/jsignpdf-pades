@@ -16,7 +16,6 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 
@@ -67,12 +66,7 @@ public class SSLInitializer  implements Closeable {
             System.setProperty(PROP_UNSAFE_RENEG, "true");
             System.setProperty(PROP_LEGACY_HELLO, "true");
 
-            HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier() {
-                @Override
-                public boolean verify(String hostname, SSLSession session) {
-                    return true;
-                }
-            });
+            HttpsURLConnection.setDefaultHostnameVerifier((hostname, session) -> true);
         } else {
             origSni = null;
             origUnsafeReneg = null;
