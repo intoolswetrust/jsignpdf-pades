@@ -1,0 +1,81 @@
+name: Windows Installers
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-installers:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build with Maven
+        run: mvn -B package -DskipTests
+
+      - name: Extract project version
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(mvn -B help:evaluate -Dexpression=project.version -q -DforceStdout)
+          # jpackage requires numeric version (no -SNAPSHOT)
+          CLEAN_VERSION=$(echo "$VERSION" | sed 's/-SNAPSHOT//' | sed 's/[^0-9.]//g')
+          echo "version=$CLEAN_VERSION" >> "$GITHUB_OUTPUT"
+          echo "full-version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare jpackage input
+        shell: bash
+        run: |
+          mkdir staging
+          cp jsignpdf-pades/target/jsignpdf-pades-${{ steps.version.outputs.full-version }}.jar staging/jsignpdf-pades.jar
+          cp validator/target/jsignpdf-pades-validator-${{ steps.version.outputs.full-version }}.jar staging/jsignpdf-pades-validator.jar
+
+      - name: Create app-image
+        run: >
+          jpackage --type app-image
+          --input staging
+          --main-jar jsignpdf-pades.jar
+          --main-class com.github.intoolswetrust.jsignpdf.pades.Main
+          --name jsignpdf-pades
+          --app-version ${{ steps.version.outputs.version }}
+          --win-console
+          --java-options "--add-exports jdk.crypto.cryptoki/sun.security.pkcs11=ALL-UNNAMED"
+          --java-options "--add-exports jdk.crypto.cryptoki/sun.security.pkcs11.wrapper=ALL-UNNAMED"
+          --java-options "--add-exports java.base/sun.security.action=ALL-UNNAMED"
+          --java-options "--add-exports java.base/sun.security.rsa=ALL-UNNAMED"
+          --java-options "--add-opens java.base/java.security=ALL-UNNAMED"
+          --java-options "--add-opens java.base/sun.security.util=ALL-UNNAMED"
+          --add-launcher jsignpdf-pades-validator=distribution/jpackage/validator-launcher.properties
+
+      - name: Create MSI installer
+        run: >
+          jpackage --type msi
+          --app-image jsignpdf-pades
+          --name jsignpdf-pades
+          --app-version ${{ steps.version.outputs.version }}
+
+      - name: Create EXE installer
+        run: >
+          jpackage --type exe
+          --app-image jsignpdf-pades
+          --name jsignpdf-pades
+          --app-version ${{ steps.version.outputs.version }}
+
+      - name: Upload MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: jsignpdf-pades-msi
+          path: '*.msi'
+
+      - name: Upload EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: jsignpdf-pades-exe
+          path: '*.exe'
