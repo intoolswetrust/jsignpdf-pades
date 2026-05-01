@@ -33,7 +33,7 @@
 
         <junit.version>6.0.3</junit.version>
         <hamcrest.version>2.2</hamcrest.version>
-        <dss.version>6.2</dss.version>
+        <dss.version>6.4</dss.version>
     </properties>
 
     <modules>
