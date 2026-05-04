@@ -1,0 +1,220 @@
+name: Do Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release-version:
+        description: 'Version to be released (e.g. 0.1.0).'
+        required: true
+      next-snapshot-version:
+        description: 'Version to be set after the release - without the -SNAPSHOT suffix (e.g. 0.2.0).'
+        required: true
+
+env:
+  GIT_AUTHOR_NAME: Flash Gordon
+  GIT_AUTHOR_EMAIL: <>
+  GIT_COMMITTER_NAME: Terminator the Kitty
+  GIT_COMMITTER_EMAIL: <>
+
+jobs:
+  do-release:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.maven_release.outputs.TAG }}
+      version: ${{ steps.maven_release.outputs.VERSION }}
+      base-version: ${{ steps.maven_release.outputs.BASE_VERSION }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+
+    - name: Verify release notes file exists
+      run: |
+        VERSION=${{ github.event.inputs.release-version }}
+        BASE_VERSION="${VERSION%%-*}"
+        NOTES_FILE="distribution/doc/release-notes/${BASE_VERSION}.md"
+        if [ ! -f "$NOTES_FILE" ]; then
+          echo "::error::Release notes file not found: $NOTES_FILE"
+          echo "Create it before triggering the release workflow."
+          exit 1
+        fi
+        echo "Found release notes: $NOTES_FILE"
+
+    - name: Set up Java and credentials
+      uses: actions/setup-java@v5
+      with:
+        java-version: 17
+        distribution: 'temurin'
+        server-id: ossrh
+        server-username: MAVEN_USERNAME
+        server-password: MAVEN_PASSWORD
+        gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
+        gpg-passphrase: MAVEN_GPG_PASSPHRASE
+        cache: 'maven'
+
+    - name: Do the Maven release and prepare Linux assets
+      id: maven_release
+      run: |
+        VERSION=${{ github.event.inputs.release-version }}
+        BASE_VERSION="${VERSION%%-*}"
+        FULL_VERSION="jsignpdf-pades-$VERSION"
+        NEXT_VERSION=${{ github.event.inputs.next-snapshot-version }}-SNAPSHOT
+        TAG=jsignpdf-pades-${VERSION}
+        set -x
+        mvn --batch-mode clean install
+        mvn -P release --batch-mode "-Dtag=${TAG}" release:prepare \
+                 "-DreleaseVersion=${VERSION}" \
+                 "-DdevelopmentVersion=${NEXT_VERSION}"
+        mvn -P release --batch-mode release:perform \
+            -DstagingProgressTimeoutMinutes=30 -Dmaven.wagon.rto=7200000 \
+            -Dmaven.wagon.httpconnectionManager.maxPerRoute=60 -Dmaven.wagon.httpconnectionManager.maxTotal=100
+        cd distribution/target
+        ls -R
+        mkdir upload
+        mv *.zip upload/
+        cp "../doc/release-notes/${BASE_VERSION}.md" upload/README.md
+        echo "TAG=$TAG" >> $GITHUB_OUTPUT
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "BASE_VERSION=$BASE_VERSION" >> $GITHUB_OUTPUT
+      env:
+        MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+        MAVEN_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+        MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+
+    - name: Stage Linux release assets for the publish job
+      uses: actions/upload-artifact@v7
+      with:
+        name: jsignpdf-pades-linux-assets
+        path: distribution/target/upload/*
+        if-no-files-found: error
+        retention-days: 1
+
+  windows-installers:
+    needs: do-release
+    runs-on: windows-latest
+    steps:
+    - name: Checkout release tag
+      uses: actions/checkout@v6
+      with:
+        ref: ${{ needs.do-release.outputs.tag }}
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v5
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: 'maven'
+
+    - name: Build with Maven
+      run: mvn -B package -DskipTests
+
+    - name: Prepare jpackage input
+      shell: bash
+      run: |
+        VERSION=${{ needs.do-release.outputs.version }}
+        mkdir staging
+        cp jsignpdf-pades/target/jsignpdf-pades-${VERSION}.jar staging/jsignpdf-pades.jar
+        cp validator/target/jsignpdf-pades-validator-${VERSION}.jar staging/jsignpdf-pades-validator.jar
+
+    - name: Create app-image
+      run: >
+        jpackage --type app-image
+        --input staging
+        --main-jar jsignpdf-pades.jar
+        --main-class com.github.intoolswetrust.jsignpdf.pades.Main
+        --name jsignpdf-pades
+        --dest jpackage-out
+        --app-version ${{ needs.do-release.outputs.version }}
+        --win-console
+        --java-options "--add-exports jdk.crypto.cryptoki/sun.security.pkcs11=ALL-UNNAMED"
+        --java-options "--add-exports jdk.crypto.cryptoki/sun.security.pkcs11.wrapper=ALL-UNNAMED"
+        --java-options "--add-exports java.base/sun.security.action=ALL-UNNAMED"
+        --java-options "--add-exports java.base/sun.security.rsa=ALL-UNNAMED"
+        --java-options "--add-opens java.base/java.security=ALL-UNNAMED"
+        --java-options "--add-opens java.base/sun.security.util=ALL-UNNAMED"
+        --add-launcher jsignpdf-pades-validator=distribution/jpackage/validator-launcher.properties
+
+    - name: Create MSI installer
+      run: >
+        jpackage --type msi
+        --app-image jpackage-out/jsignpdf-pades
+        --name jsignpdf-pades
+        --app-version ${{ needs.do-release.outputs.version }}
+        --dest windows-out
+
+    - name: Create EXE installer
+      run: >
+        jpackage --type exe
+        --app-image jpackage-out/jsignpdf-pades
+        --name jsignpdf-pades
+        --app-version ${{ needs.do-release.outputs.version }}
+        --dest windows-out
+
+    - name: Stage Windows installers for the publish job
+      uses: actions/upload-artifact@v7
+      with:
+        name: jsignpdf-pades-windows-assets
+        path: windows-out/*
+        if-no-files-found: error
+        retention-days: 1
+
+  publish-release:
+    needs: [do-release, windows-installers]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ needs.do-release.outputs.tag }}
+      VERSION: ${{ needs.do-release.outputs.version }}
+      BASE_VERSION: ${{ needs.do-release.outputs.base-version }}
+      FULL_VERSION: jsignpdf-pades-${{ needs.do-release.outputs.version }}
+    steps:
+    - name: Checkout release tag
+      uses: actions/checkout@v6
+      with:
+        ref: ${{ needs.do-release.outputs.tag }}
+
+    - name: Download Linux assets
+      uses: actions/download-artifact@v8
+      with:
+        name: jsignpdf-pades-linux-assets
+        path: release-assets/jsignpdf-pades-${{ needs.do-release.outputs.version }}
+
+    - name: Download Windows assets
+      uses: actions/download-artifact@v8
+      with:
+        name: jsignpdf-pades-windows-assets
+        path: release-assets/jsignpdf-pades-${{ needs.do-release.outputs.version }}
+
+    - name: List staged assets
+      run: ls -R release-assets
+
+    - name: Create GitHub release with all assets
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        set -euo pipefail
+        NOTES_FILE="distribution/doc/release-notes/${BASE_VERSION}.md"
+        if [ ! -f "$NOTES_FILE" ]; then
+          echo "::error::Release notes file not found at $NOTES_FILE"
+          exit 1
+        fi
+        if gh release view "$TAG" >/dev/null 2>&1; then
+          gh release delete "$TAG" --yes --cleanup-tag=false
+        fi
+        shopt -s nullglob
+        assets=(release-assets/"$FULL_VERSION"/*)
+        if [ ${#assets[@]} -eq 0 ]; then
+          echo "::error::No assets found under release-assets/$FULL_VERSION/"
+          exit 1
+        fi
+        prerelease_flag=()
+        shopt -s nocasematch
+        if [[ "$VERSION" == *ALPHA* || "$VERSION" == *BETA* || "$VERSION" == *RC* || "$VERSION" == *MILESTONE* ]]; then
+          prerelease_flag=(--prerelease)
+        fi
+        shopt -u nocasematch
+        gh release create "$TAG" \
+          --title "$TAG" \
+          --notes-file "$NOTES_FILE" \
+          "${prerelease_flag[@]}" \
+          "${assets[@]}"
