@@ -24,6 +24,8 @@ import java.util.logging.Level;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
 
+import eu.europa.esig.dss.service.crl.OnlineCRLSource;
+import eu.europa.esig.dss.service.ocsp.OnlineOCSPSource;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.pdfbox.Loader;
@@ -207,6 +209,9 @@ public class SignerLogic {
                 }
 
                 CommonCertificateVerifier verifier = new CommonCertificateVerifier();
+                verifier.setCheckRevocationForUntrustedChains(true);
+                verifier.setOcspSource(new OnlineOCSPSource());
+                verifier.setCrlSource(new OnlineCRLSource());
                 PAdESService service = new PAdESService(verifier);
 
                 // Configure TSA
