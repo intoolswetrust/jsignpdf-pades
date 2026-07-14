@@ -15,6 +15,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import eu.europa.esig.dss.enumerations.CertificateSourceType;
 import eu.europa.esig.dss.spi.x509.CertificateSource;
 import eu.europa.esig.dss.tsl.source.LOTLSource;
 
@@ -82,6 +83,76 @@ public class TrustedCertSourcesProviderTest {
 
         assertEquals(1, sources.length);
         assertFalse(sources[0].getCertificates().isEmpty(), "Keystore source should contain certificates");
+    }
+
+    /**
+     * A truststore has to end up as a TRUSTED_STORE source. DSS's {@code setTrustedCertSources} accepts only
+     * TRUSTED_STORE and TRUSTED_LIST sources, so a raw KeyStoreCertificateSource (source type OTHER) would be
+     * rejected and the truststore would confer no trust at all.
+     */
+    @Test
+    public void testKeystoreSourceIsTrusted() throws Exception {
+        TrustConfig config = new TrustConfig();
+        config.setKeystoreFile(new File(KS_FILE));
+        config.setKeystorePassword(KS_PASSWORD.toCharArray());
+        config.setKeystoreType(KS_TYPE);
+
+        CertificateSource[] sources = new TrustedCertSourcesProvider(config).createTrustedCertSources();
+
+        assertEquals(CertificateSourceType.TRUSTED_STORE, sources[0].getCertificateSourceType(),
+                "A truststore must be a trusted source, or DSS ignores it");
+    }
+
+    /** The EU LOTL needs its URL, the OJ announcement predicate and pivot support, or DSS cannot resolve it. */
+    @Test
+    public void testDefaultLotlSourceIsFullyConfigured() throws Exception {
+        TrustConfig config = new TrustConfig();
+        config.setUseDefaultLotl(true);
+
+        LOTLSource lotl = invokeLotlSources(config)[0];
+
+        assertEquals(TrustedCertSourcesProvider.DEFAULT_EU_LOTL_URL, lotl.getUrl());
+        assertTrue(lotl.isPivotSupport(), "Pivot support is needed to follow the OJ certificate rotations");
+        assertNotNull(lotl.getSigningCertificatesAnnouncementPredicate(),
+                "The OJ announcement predicate decides which certificates may sign the LOTL");
+        assertFalse(lotl.getCertificateSource().getCertificates().isEmpty(),
+                "The bundled OJ keystore must supply the certificates that validate the LOTL signature");
+    }
+
+    @Test
+    public void testDefaultLotlUrlsCanBeOverridden() throws Exception {
+        TrustConfig config = new TrustConfig();
+        config.setUseDefaultLotl(true);
+        config.setEuLotlUrl("https://example.com/my-lotl.xml");
+        config.setOjUrl("https://example.com/my-oj");
+
+        LOTLSource lotl = invokeLotlSources(config)[0];
+
+        assertEquals("https://example.com/my-lotl.xml", lotl.getUrl());
+    }
+
+    /** A custom LOTL is validated against the same OJ certificates, and gets pivot support too. */
+    @Test
+    public void testCustomLotlSourceUsesOjKeystoreAndPivots() throws Exception {
+        TrustConfig config = new TrustConfig();
+        config.setLotlUrls(Collections.singletonList("https://example.com/lotl.xml"));
+
+        LOTLSource lotl = invokeLotlSources(config)[0];
+
+        assertFalse(lotl.getCertificateSource().getCertificates().isEmpty(),
+                "A custom LOTL must still be signature-checked against the OJ certificates");
+        assertTrue(lotl.isPivotSupport());
+        assertFalse(lotl.isMraSupport(), "Mutual recognition is off unless asked for");
+    }
+
+    /** Only third-country mutual-recognition LOTLs need MRA, so it is opt-in. */
+    @Test
+    public void testMraSupportIsEnabledOnRequest() throws Exception {
+        TrustConfig config = new TrustConfig();
+        config.setLotlUrls(Collections.singletonList("https://example.com/mra-lotl.xml"));
+        config.setLotlMraSupport(true);
+
+        assertTrue(invokeLotlSources(config)[0].isMraSupport());
     }
 
     @Test

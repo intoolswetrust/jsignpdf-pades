@@ -31,6 +31,26 @@ public class TrustConfig {
     @Parameter(names = { "--trust-use-default-lotl" }, description = "Use default List Of Trusted Lists (EU)")
     private boolean useDefaultLotl;
 
+    @Parameter(names = { "--trust-eu-lotl-url" }, description = "Override the URL of the EU List Of Trusted Lists")
+    private String euLotlUrl;
+
+    @Parameter(names = { "--trust-oj-url" }, description = "Override the Official Journal URL announcing the"
+            + " certificates allowed to sign the EU List Of Trusted Lists")
+    private String ojUrl;
+
+    @Parameter(names = { "--trust-oj-keystore-file" }, description = "Override the bundled keystore holding the"
+            + " certificates that sign the List Of Trusted Lists")
+    private File ojKeystoreFile;
+
+    @Parameter(names = { "--trust-oj-keystore-password" }, converter = CharArrayConverter.class,
+            description = "Password of the keystore given by --trust-oj-keystore-file")
+    private char[] ojKeystorePassword;
+
+    @Parameter(names = { "--trust-lotl-mra-support" }, description = "Enable Mutual Recognition Agreement"
+            + " processing for the Lists Of Trusted Lists given by --trust-lotl-url, so trust services of"
+            + " third countries recognised through an MRA are trusted too")
+    private boolean lotlMraSupport;
+
     public List<String> getLotlUrls() {
         return lotlUrls;
     }
@@ -85,6 +105,46 @@ public class TrustConfig {
 
     public void setUseDefaultLotl(boolean useDefaultLotl) {
         this.useDefaultLotl = useDefaultLotl;
+    }
+
+    public String getEuLotlUrl() {
+        return euLotlUrl;
+    }
+
+    public void setEuLotlUrl(String euLotlUrl) {
+        this.euLotlUrl = euLotlUrl;
+    }
+
+    public String getOjUrl() {
+        return ojUrl;
+    }
+
+    public void setOjUrl(String ojUrl) {
+        this.ojUrl = ojUrl;
+    }
+
+    public File getOjKeystoreFile() {
+        return ojKeystoreFile;
+    }
+
+    public void setOjKeystoreFile(File ojKeystoreFile) {
+        this.ojKeystoreFile = ojKeystoreFile;
+    }
+
+    public char[] getOjKeystorePassword() {
+        return ojKeystorePassword;
+    }
+
+    public void setOjKeystorePassword(char[] ojKeystorePassword) {
+        this.ojKeystorePassword = ojKeystorePassword;
+    }
+
+    public boolean isLotlMraSupport() {
+        return lotlMraSupport;
+    }
+
+    public void setLotlMraSupport(boolean lotlMraSupport) {
+        this.lotlMraSupport = lotlMraSupport;
     }
 
 }
