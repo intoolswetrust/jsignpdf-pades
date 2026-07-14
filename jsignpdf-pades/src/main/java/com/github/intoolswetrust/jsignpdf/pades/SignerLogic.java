@@ -14,12 +14,18 @@ import java.net.URI;
 import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
@@ -66,6 +72,41 @@ import eu.europa.esig.dss.token.DSSPrivateKeyEntry;
  */
 public class SignerLogic {
 
+    /**
+     * The digest algorithms PAdES permits. SHA-1, RIPEMD-160 and the like are rejected rather than silently
+     * used: DSS would happily produce such a signature, but no strict PAdES validator accepts it.
+     */
+    private static final Set<DigestAlgorithm> PADES_DIGEST_ALGORITHMS = Collections.unmodifiableSet(EnumSet.of(
+            DigestAlgorithm.SHA256, DigestAlgorithm.SHA384, DigestAlgorithm.SHA512,
+            DigestAlgorithm.SHA3_256, DigestAlgorithm.SHA3_384, DigestAlgorithm.SHA3_512));
+
+    /** Lower bound for the reserved {@code /Contents} size, matching DSS's own default; never estimate below it. */
+    private static final int MIN_CONTENT_SIZE = 9472;
+
+    /** Per-certificate fallback used only when a chain certificate cannot be DER-encoded for measurement. */
+    private static final int CERT_SIZE_FALLBACK = 2048;
+
+    /**
+     * Headroom added on top of the certificate-chain bytes for the signer info, signed attributes, the
+     * signature value (comfortably covers RSA-4096) and the ASN.1 framing of the CMS SignedData.
+     */
+    private static final int CMS_OVERHEAD = 4096;
+
+    /**
+     * Extra space reserved when a signature timestamp is embedded (PAdES level T and above). The timestamp
+     * token carries its own TSA certificate chain and is by far the largest single variable in {@code /Contents}.
+     */
+    private static final int TSA_ALLOWANCE = 16384;
+
+    /** Slack added on top of the exact size DSS reports when growing after an undersize failure. */
+    private static final int RETRY_MARGIN = 2048;
+
+    /** Cap on undersize retries; DSS reports the exact required size, so a single retry normally suffices. */
+    private static final int MAX_CONTENT_SIZE_RETRIES = 3;
+
+    /** Extracts the actual CMS length from the DSS "signature size too small" message. */
+    private static final Pattern UNDERSIZE_LENGTH_PATTERN = Pattern.compile("with a length \\[(\\d+)\\]");
+
     private final BasicConfig options;
 
     public SignerLogic(final BasicConfig anOptions) {
@@ -84,6 +125,12 @@ public class SignerLogic {
      */
     public boolean signFile(File inFile, File outFile) {
         if (!validateInOutFiles(inFile, outFile)) {
+            LOGGER.info("Skipping signing.");
+            return false;
+        }
+        if (!PADES_DIGEST_ALGORITHMS.contains(options.getDigestAlgorithm())) {
+            LOGGER.severe("Digest algorithm " + options.getDigestAlgorithm().getName()
+                    + " is not allowed in PAdES signatures. Use one of: " + PADES_DIGEST_ALGORITHMS);
             LOGGER.info("Skipping signing.");
             return false;
         }
@@ -185,6 +232,13 @@ public class SignerLogic {
                     if (encryptedTempFile == null) {
                         return false;
                     }
+                    // DSS must open the temp with the password encryptPdf just used. PDFBox treats an empty
+                    // owner password as "owner = user password", so when no owner password was given the temp
+                    // is encrypted under the user password and that is the only one that opens it.
+                    char[] openPwd = ownerPwd != null && ownerPwd.length > 0 ? ownerPwd : options.getPdfUserPwd();
+                    if (openPwd != null && openPwd.length > 0) {
+                        parameters.setPasswordProtection(openPwd);
+                    }
                 }
 
                 // Add blank page if requested (before loading as DSSDocument)
@@ -220,7 +274,7 @@ public class SignerLogic {
                         URI tsaUri = URI.create(tsaUrl);
                         String tsaUser = tsaConfig.getTsaUser();
                         char[] tsaPassword = tsaConfig.getTsaPassword();
-                        tsDataLoader.addAuthentication(tsaUri.getHost(), tsaUri.getPort(), null, tsaUser,
+                        tsDataLoader.addAuthentication(tsaUri.getHost(), resolvePort(tsaUri), null, tsaUser,
                                 tsaPassword);
                     }
                     OnlineTSPSource tspSource = new OnlineTSPSource(tsaUrl, tsDataLoader);
@@ -232,17 +286,24 @@ public class SignerLogic {
                     }
                     String tsaHashAlg = tsaConfig.getTsaHashAlgorithm();
                     if (StringUtils.isNotEmpty(tsaHashAlg)) {
-                        parameters.getSignatureTimestampParameters()
-                                .setDigestAlgorithm(DigestAlgorithm.forJavaName(tsaHashAlg));
+                        LOGGER.info("Setting TSA hash algorithm: " + tsaHashAlg);
+                        // All three timestamp kinds, or the archive timestamp an LTA signature adds would keep
+                        // the DSS default and the requested algorithm would only be half applied.
+                        DigestAlgorithm tsaDigest = DigestAlgorithm.forJavaName(tsaHashAlg);
+                        parameters.getContentTimestampParameters().setDigestAlgorithm(tsaDigest);
+                        parameters.getSignatureTimestampParameters().setDigestAlgorithm(tsaDigest);
+                        parameters.getArchiveTimestampParameters().setDigestAlgorithm(tsaDigest);
                     }
                     service.setTspSource(tspSource);
                 }
 
                 LOGGER.info("Processing signature.");
                 LOGGER.info("Creating signature.");
-                ToBeSigned dataToSign = service.getDataToSign(document, parameters);
-                SignatureValue signatureValue = token.sign(dataToSign, digestAlgorithm, null);
-                DSSDocument signedDocument = service.signDocument(document, parameters, signatureValue);
+                int configuredContentSize = options.getContentSize();
+                int initialContentSize = configuredContentSize > 0 ? configuredContentSize
+                        : estimateContentSize(chain, useTsa);
+                DSSDocument signedDocument = signWithContentSize(service, document, parameters, token,
+                        digestAlgorithm, initialContentSize, options.isRetryOnUndersize());
 
                 LOGGER.info("Creating output PDF: " + outFile);
                 try (FileOutputStream fos = new FileOutputStream(outFile)) {
@@ -265,14 +326,132 @@ public class SignerLogic {
         return finished;
     }
 
+    /**
+     * Estimates how many bytes to reserve in the PDF {@code /Contents} for the CMS signature. DSS uses a fixed
+     * reservation ({@value #MIN_CONTENT_SIZE} bytes) that is too small for large certificate chains (eID /
+     * qualified certificates) combined with an embedded signature timestamp. Sizing from the actual chain plus a
+     * fixed timestamp allowance covers those in a single pass; {@link #signWithContentSize} is the safety net
+     * when even this is too small.
+     *
+     * <p>
+     * The estimate cannot be exact for timestamped signatures: the TSA token (with its own certificate chain) is
+     * only known once the TSA responds inside {@code signDocument()}, so a fixed {@link #TSA_ALLOWANCE} is
+     * reserved instead.
+     * </p>
+     *
+     * @param chain         the signer's certificate chain (all of it is encapsulated in the CMS)
+     * @param withTimestamp whether a signature timestamp will be embedded (PAdES level T and above)
+     * @return the number of bytes to reserve, never below {@link #MIN_CONTENT_SIZE}
+     */
+    private static int estimateContentSize(Certificate[] chain, boolean withTimestamp) {
+        int chainBytes = 0;
+        for (Certificate cert : chain) {
+            try {
+                chainBytes += cert.getEncoded().length;
+            } catch (CertificateEncodingException e) {
+                chainBytes += CERT_SIZE_FALLBACK;
+            }
+        }
+        int estimate = chainBytes + CMS_OVERHEAD;
+        if (withTimestamp) {
+            estimate += TSA_ALLOWANCE;
+        }
+        return Math.max(estimate, MIN_CONTENT_SIZE);
+    }
+
+    /**
+     * Signs the document, reserving {@code initialContentSize} bytes for the CMS {@code /Contents}. The reserved
+     * size is fixed before the byte ranges are digested, so it cannot be derived from the produced signature;
+     * when {@code retryOnUndersize} is enabled and DSS reports the reservation was too small, this re-runs the
+     * whole signing operation with the exact size DSS reported (plus {@link #RETRY_MARGIN}). For timestamped
+     * levels each retry fetches a fresh TSA token, hence the {@link #MAX_CONTENT_SIZE_RETRIES} cap.
+     */
+    private DSSDocument signWithContentSize(PAdESService service, DSSDocument document,
+            PAdESSignatureParameters parameters, PrivateKeySignatureToken token, DigestAlgorithm digestAlgorithm,
+            int initialContentSize, boolean retryOnUndersize) {
+        int contentSize = initialContentSize;
+        for (int attempt = 0;; attempt++) {
+            parameters.setContentSize(contentSize);
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.fine("Signing attempt " + attempt + " reserving " + contentSize + " bytes for /Contents");
+            }
+            ToBeSigned dataToSign = service.getDataToSign(document, parameters);
+            SignatureValue signatureValue = token.sign(dataToSign, digestAlgorithm, null);
+            try {
+                return service.signDocument(document, parameters, signatureValue);
+            } catch (IllegalArgumentException e) {
+                Integer required = parseRequiredContentSize(e.getMessage());
+                // Doubling is the fallback when the required size cannot be parsed; the guard below stops a
+                // non-growing loop in that case.
+                int grown = required != null ? required + RETRY_MARGIN : contentSize * 2;
+                if (!retryOnUndersize || attempt >= MAX_CONTENT_SIZE_RETRIES || grown <= contentSize) {
+                    logUndersizeGuidance(contentSize, required, retryOnUndersize);
+                    throw e;
+                }
+                LOGGER.info("Reserved " + contentSize + " bytes for the signature, which was too small."
+                        + " Retrying with " + grown + " bytes.");
+                contentSize = grown;
+            }
+        }
+    }
+
+    /**
+     * Logs an actionable message when an undersized {@code /Contents} cannot be recovered, pointing at the two
+     * options that control it. Without this the only feedback is the raw DSS {@link IllegalArgumentException},
+     * which names a DSS API call rather than anything the user can set.
+     *
+     * @param contentSize the reservation that proved too small
+     * @param required    the size DSS reported as needed, or {@code null} if it could not be parsed
+     */
+    private static void logUndersizeGuidance(int contentSize, Integer required, boolean retryOnUndersize) {
+        int suggested = (required != null ? required : contentSize * 2) + RETRY_MARGIN;
+        if (retryOnUndersize) {
+            // Retry was enabled but exhausted / not progressing: only the explicit override is left.
+            LOGGER.severe("Could not reserve enough space for the signature (last attempt: " + contentSize
+                    + " bytes). Set --content-size " + suggested + " to reserve it explicitly.");
+        } else {
+            LOGGER.severe("Reserved " + contentSize + " bytes for the signature, which is too small, and"
+                    + " --no-retry-on-undersize is set. Set --content-size " + suggested + " or drop the flag.");
+        }
+    }
+
+    /**
+     * Parses the required CMS length out of the DSS "signature size is too small" message, so the retry can
+     * reserve exactly that (plus a margin). Returns {@code null} when the message does not match, in which case
+     * the caller falls back to doubling.
+     */
+    private static Integer parseRequiredContentSize(String message) {
+        if (message == null) {
+            return null;
+        }
+        Matcher matcher = UNDERSIZE_LENGTH_PATTERN.matcher(message);
+        if (matcher.find()) {
+            try {
+                return Integer.valueOf(matcher.group(1));
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    /** Resolves the port for TSA basic-auth registration, defaulting from the scheme when the URL omits it. */
+    static int resolvePort(URI uri) {
+        int port = uri.getPort();
+        if (port >= 0) {
+            return port;
+        }
+        return "https".equalsIgnoreCase(uri.getScheme()) ? 443 : 80;
+    }
+
     private AccessPermission buildAccessPermission() {
         AccessPermission ap = new AccessPermission();
         PrintRight printing = options.getRightPrinting();
         if (printing == null) {
             printing = PrintRight.ALLOW_PRINTING;
         }
-        ap.setCanPrint(printing == PrintRight.ALLOW_PRINTING);
-        ap.setCanPrintFaithful(printing != PrintRight.DISALLOW_PRINTING);
+        ap.setCanPrint(printing != PrintRight.DISALLOW_PRINTING);
+        ap.setCanPrintFaithful(printing == PrintRight.ALLOW_PRINTING);
         ap.setCanExtractContent(!options.isDisableCopy());
         ap.setCanAssembleDocument(!options.isDisableAssembly());
         ap.setCanFillInForm(!options.isDisableFill());

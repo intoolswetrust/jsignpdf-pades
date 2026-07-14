@@ -124,6 +124,29 @@ public class PasswordProtectedPdfSigningTest extends SigningTestBase {
         assertEquals(1, result.signatureCount, "Should have 1 signature");
     }
 
+    /**
+     * Encrypt-before-sign with a user password only. PDFBox treats an empty owner password as "owner = user
+     * password", so the temp file is encrypted under the user password and that is the only password that
+     * reopens it — DSS has to be handed that one, not the (empty) owner password.
+     */
+    @Test
+    public void testUserOnlyPasswordEncryptionBeforeSigning() throws Exception {
+        BasicConfig options = createDefaultOptions();
+        options.setEncryptBeforeSign(true);
+        options.setPdfUserPwd(USER_PASSWORD);
+        // No owner password.
+
+        boolean success = new SignerLogic(options).signFile(inputFile, outputFile);
+        assertTrue(success, "Signing a user-password-only encrypted PDF should succeed");
+
+        try (PDDocument doc = Loader.loadPDF(outputFile, new String(USER_PASSWORD))) {
+            assertTrue(doc.isEncrypted(), "Output PDF should be encrypted");
+        }
+        ValidationResult result = PdfSignatureValidator.validate(outputFile, new String(USER_PASSWORD));
+        assertTrue(result.signatureValid, "Signature should be valid");
+        assertEquals(1, result.signatureCount, "Should have 1 signature");
+    }
+
     /** Attempting to encrypt a PDF that already has signatures should fail. */
     @Test
     public void testEncryptionBlockedWhenExistingSignatures() throws Exception {

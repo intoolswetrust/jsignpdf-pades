@@ -63,6 +63,14 @@ public class BasicConfig {
     @Parameter(names = { "--certification-level", "-cl" }, description = "Certification level")
     private CertificationLevel certLevel;
 
+    @Parameter(names = { "--content-size" }, description = "Number of bytes to reserve in the PDF for the signature."
+            + " When 0 (the default), the size is estimated from the certificate chain and the signing options.")
+    private int contentSize;
+
+    @Parameter(names = { "--no-retry-on-undersize" }, description = "Fail instead of re-signing with a bigger"
+            + " reservation when the space reserved for the signature turns out to be too small")
+    private boolean noRetryOnUndersize;
+
     // Output
     @Parameter(names = { "--out-suffix", "-os" }, description = "Signed file suffix to be attached to the original name")
     private String outSuffix = "_signed";
@@ -230,6 +238,22 @@ public class BasicConfig {
 
     public void setCertLevel(CertificationLevel certLevel) {
         this.certLevel = certLevel;
+    }
+
+    public int getContentSize() {
+        return contentSize;
+    }
+
+    public void setContentSize(int contentSize) {
+        this.contentSize = contentSize;
+    }
+
+    public boolean isRetryOnUndersize() {
+        return !noRetryOnUndersize;
+    }
+
+    public void setRetryOnUndersize(boolean retryOnUndersize) {
+        this.noRetryOnUndersize = !retryOnUndersize;
     }
 
     public String getOutSuffix() {
