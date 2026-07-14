@@ -39,6 +39,8 @@ import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.encryption.AccessPermission;
 import org.apache.pdfbox.pdmodel.encryption.StandardProtectionPolicy;
 
+import com.github.intoolswetrust.jsignpdf.pades.common.TrustConfig;
+import com.github.intoolswetrust.jsignpdf.pades.common.TrustedCertSourcesProvider;
 import com.github.intoolswetrust.jsignpdf.pades.config.BasicConfig;
 import com.github.intoolswetrust.jsignpdf.pades.config.PadesLevel;
 import com.github.intoolswetrust.jsignpdf.pades.config.TsaConfig;
@@ -49,6 +51,7 @@ import com.github.intoolswetrust.jsignpdf.pades.types.ServerAuthentication;
 import com.github.intoolswetrust.jsignpdf.pades.utils.FontUtils;
 import com.github.intoolswetrust.jsignpdf.pades.utils.PrivateKeySignatureToken;
 
+import eu.europa.esig.dss.alert.LogOnStatusAlert;
 import eu.europa.esig.dss.enumerations.CertificationPermission;
 import eu.europa.esig.dss.enumerations.DigestAlgorithm;
 import eu.europa.esig.dss.enumerations.SignatureLevel;
@@ -62,9 +65,15 @@ import eu.europa.esig.dss.pades.SignatureFieldParameters;
 import eu.europa.esig.dss.pades.SignatureImageParameters;
 import eu.europa.esig.dss.pades.SignatureImageTextParameters;
 import eu.europa.esig.dss.pades.signature.PAdESService;
+import eu.europa.esig.dss.service.crl.OnlineCRLSource;
+import eu.europa.esig.dss.service.http.commons.CommonsDataLoader;
+import eu.europa.esig.dss.service.http.commons.OCSPDataLoader;
 import eu.europa.esig.dss.service.http.commons.TimestampDataLoader;
+import eu.europa.esig.dss.service.ocsp.OnlineOCSPSource;
 import eu.europa.esig.dss.service.tsp.OnlineTSPSource;
 import eu.europa.esig.dss.spi.validation.CommonCertificateVerifier;
+import eu.europa.esig.dss.spi.x509.CertificateSource;
+import eu.europa.esig.dss.spi.x509.aia.DefaultAIASource;
 import eu.europa.esig.dss.token.DSSPrivateKeyEntry;
 
 /**
@@ -260,7 +269,24 @@ public class SignerLogic {
                     configureVisibleSignature(parameters, chain, signingCal, effectiveInFile);
                 }
 
-                CommonCertificateVerifier verifier = new CommonCertificateVerifier();
+                // LT/LTA embed validation material, which DSS collects only for a chain it can anchor and only
+                // when it may go online. Both conditions are config, so check them here instead of failing deep
+                // inside signDocument() after the PDF, the key and a TSA round-trip have already been spent.
+                boolean ltOrLta = padesLevel == PadesLevel.BASELINE_LT || padesLevel == PadesLevel.BASELINE_LTA;
+                if (ltOrLta && !checkLtPreconditions(useTsa)) {
+                    return false;
+                }
+
+                final CommonCertificateVerifier verifier;
+                try {
+                    verifier = buildCertificateVerifier();
+                } catch (Exception e) {
+                    // A configured trust source could not be loaded (bad truststore path or password, unreadable
+                    // certificate file, unreachable LOTL). Fail rather than sign with trust material that is not
+                    // what was asked for, and surface an opaque DSS error later.
+                    LOGGER.log(Level.SEVERE, "Failed to configure the trust sources.", e);
+                    return false;
+                }
                 PAdESService service = new PAdESService(verifier);
 
                 // Configure TSA
@@ -324,6 +350,87 @@ public class SignerLogic {
             LOGGER.info("Signing " + (finished ? "finished successfully." : "failed."));
         }
         return finished;
+    }
+
+    /**
+     * Checks the configuration an LT/LTA signature needs before any expensive work is done. Each of these
+     * otherwise fails deep inside DSS with an opaque alert about missing revocation data.
+     *
+     * @param useTsa whether a timestamp server is configured
+     * @return {@code true} when LT/LTA can be attempted
+     */
+    private boolean checkLtPreconditions(boolean useTsa) {
+        TrustConfig trustConfig = options.getTrustConfig();
+        if (!useTsa) {
+            // LT/LTA build on a signature timestamp (level T).
+            LOGGER.severe("PAdES level " + options.getPadesLevel() + " requires a timestamp."
+                    + " Set a timestamp server with --tsa-server-url.");
+            return false;
+        }
+        if (!options.isOnline()) {
+            LOGGER.severe("PAdES level " + options.getPadesLevel() + " embeds revocation data, which cannot be"
+                    + " fetched in offline mode. Drop --offline.");
+            return false;
+        }
+        if (!trustConfig.hasTrustSource() && !options.isAllowUntrusted()) {
+            // DSS skips revocation fetching entirely for a chain it cannot anchor, so without a trust source the
+            // level is unreachable no matter what the CA publishes.
+            LOGGER.severe("PAdES level " + options.getPadesLevel() + " needs a trust anchor for the signing"
+                    + " certificate, but no trust source is configured. Use --trust-use-default-lotl,"
+                    + " --trust-certificate-file, --trust-keystore-file or --trust-system-store"
+                    + " (or --trust-allow-untrusted for a private PKI).");
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Builds the verifier DSS resolves trust anchors and revocation data through. Levels B and T need neither,
+     * but the sources are configured regardless: they are what the user asked for, and DSS consults them only
+     * for the levels that embed validation material.
+     */
+    private CommonCertificateVerifier buildCertificateVerifier() throws Exception {
+        CommonCertificateVerifier verifier = new CommonCertificateVerifier();
+
+        CertificateSource[] trustedSources =
+                new TrustedCertSourcesProvider(options.getTrustConfig()).createTrustedCertSources();
+        if (trustedSources.length > 0) {
+            verifier.setTrustedCertSources(trustedSources);
+        }
+
+        if (options.isOnline()) {
+            OCSPDataLoader ocspDataLoader = new OCSPDataLoader();
+            CommonsDataLoader dataLoader = new CommonsDataLoader();
+            if (options.isInsecureRelaxTls()) {
+                ocspDataLoader.setTrustStrategy((certChain, type) -> true);
+                dataLoader.setTrustStrategy((certChain, type) -> true);
+            }
+            verifier.setAIASource(new DefaultAIASource(dataLoader));
+            verifier.setOcspSource(new OnlineOCSPSource(ocspDataLoader));
+            verifier.setCrlSource(new OnlineCRLSource(dataLoader));
+        }
+
+        if (options.isAllowUntrusted()) {
+            relaxTrustAndRevocationAlerts(verifier);
+        }
+        return verifier;
+    }
+
+    /**
+     * Downgrades the alerts that otherwise abort LT/LTA when the signer chain is self-signed or carries no
+     * revocation data: each becomes a warning, so DSS attaches the baseline structure it can and logs what is
+     * missing. The result is not a conformant long-term signature — see {@code --trust-allow-untrusted}.
+     */
+    private static void relaxTrustAndRevocationAlerts(CommonCertificateVerifier verifier) {
+        LOGGER.warning("Trusting an untrusted certificate chain (--trust-allow-untrusted). The signature will"
+                + " have the LT/LTA structure but not the revocation data the level requires, so strict"
+                + " validators will not accept it as LT/LTA.");
+        LogOnStatusAlert warn = new LogOnStatusAlert(org.slf4j.event.Level.WARN);
+        verifier.setAugmentationAlertOnSelfSignedCertificateChains(warn);
+        verifier.setAugmentationAlertOnSignatureWithoutCertificates(warn);
+        verifier.setAlertOnMissingRevocationData(warn);
+        verifier.setAlertOnUncoveredPOE(warn);
+        verifier.setAlertOnNoRevocationAfterBestSignatureTime(warn);
     }
 
     /**

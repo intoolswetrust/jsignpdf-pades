@@ -136,6 +136,17 @@ public class BasicConfig {
     @Parameter(names = "--insecure-relax-tls", description = "Switch to INSECURE mode and don't verify TLS connections")
     private boolean insecureRelaxTls;
 
+    // Revocation data / trust
+    @Parameter(names = "--offline", description = "Don't fetch revocation data (OCSP, CRL) or issuer certificates"
+            + " from the network. The PAdES LT and LTA levels embed that data, so they cannot be created offline.")
+    private boolean offline;
+
+    @Parameter(names = "--trust-allow-untrusted", description = "Create LT/LTA signatures even for a self-signed"
+            + " or otherwise untrusted certificate chain that carries no revocation data. The result has the"
+            + " LT/LTA structure but not the revocation material the level is defined to embed, so strict"
+            + " validators will NOT accept it as LT/LTA. For private PKI and testing only.")
+    private boolean allowUntrusted;
+
     // Delegates
     @ParametersDelegate
     private final VisibleSignatureConfig visibleSignatureConfig = new VisibleSignatureConfig();
@@ -410,5 +421,21 @@ public class BasicConfig {
 
     public boolean isInsecureRelaxTls() {
         return insecureRelaxTls;
+    }
+
+    public boolean isOnline() {
+        return !offline;
+    }
+
+    public void setOnline(boolean online) {
+        this.offline = !online;
+    }
+
+    public boolean isAllowUntrusted() {
+        return allowUntrusted;
+    }
+
+    public void setAllowUntrusted(boolean allowUntrusted) {
+        this.allowUntrusted = allowUntrusted;
     }
 }

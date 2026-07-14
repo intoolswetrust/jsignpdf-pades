@@ -51,6 +51,11 @@ public class TrustConfig {
             + " third countries recognised through an MRA are trusted too")
     private boolean lotlMraSupport;
 
+    @Parameter(names = { "--trust-system-store" }, description = "Trust the root certificates of the operating"
+            + " system and the JVM (cacerts everywhere, plus Windows-ROOT on Windows and the macOS keychain)."
+            + " These are public CA roots, not EU trusted-list anchors: they do not confer qualified status.")
+    private boolean useSystemStore;
+
     public List<String> getLotlUrls() {
         return lotlUrls;
     }
@@ -145,6 +150,24 @@ public class TrustConfig {
 
     public void setLotlMraSupport(boolean lotlMraSupport) {
         this.lotlMraSupport = lotlMraSupport;
+    }
+
+    public boolean isUseSystemStore() {
+        return useSystemStore;
+    }
+
+    public void setUseSystemStore(boolean useSystemStore) {
+        this.useSystemStore = useSystemStore;
+    }
+
+    /**
+     * Tells whether any trust anchor source is configured at all. The PAdES LT and LTA levels embed validation
+     * material, which DSS only collects for a chain it can anchor — with nothing configured here, they cannot
+     * be produced.
+     */
+    public boolean hasTrustSource() {
+        return useDefaultLotl || useSystemStore || keystoreFile != null || !certificateFiles.isEmpty()
+                || !certificateUrls.isEmpty() || !lotlUrls.isEmpty();
     }
 
 }

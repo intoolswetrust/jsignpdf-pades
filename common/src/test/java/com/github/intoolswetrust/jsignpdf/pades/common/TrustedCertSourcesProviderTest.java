@@ -145,6 +145,32 @@ public class TrustedCertSourcesProviderTest {
         assertFalse(lotl.isMraSupport(), "Mutual recognition is off unless asked for");
     }
 
+    /** The JVM's own cacerts is available on every platform, so the system store must yield real anchors. */
+    @Test
+    public void testSystemStoreAddsTrustedAnchors() throws Exception {
+        TrustConfig config = new TrustConfig();
+        config.setUseSystemStore(true);
+
+        CertificateSource[] sources = new TrustedCertSourcesProvider(config).createTrustedCertSources();
+
+        assertTrue(sources.length >= 1, "At least the JVM cacerts store should load");
+        assertEquals(CertificateSourceType.TRUSTED_STORE, sources[0].getCertificateSourceType());
+        assertFalse(sources[0].getCertificates().isEmpty(), "cacerts should contain CA certificates");
+    }
+
+    @Test
+    public void testHasTrustSourceReflectsWhatIsConfigured() {
+        assertFalse(new TrustConfig().hasTrustSource(), "An empty config has no trust source");
+
+        TrustConfig withKeystore = new TrustConfig();
+        withKeystore.setKeystoreFile(new File(KS_FILE));
+        assertTrue(withKeystore.hasTrustSource());
+
+        TrustConfig withSystemStore = new TrustConfig();
+        withSystemStore.setUseSystemStore(true);
+        assertTrue(withSystemStore.hasTrustSource());
+    }
+
     /** Only third-country mutual-recognition LOTLs need MRA, so it is opt-in. */
     @Test
     public void testMraSupportIsEnabledOnRequest() throws Exception {
