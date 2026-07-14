@@ -123,6 +123,15 @@ public class EmbeddedTsaServer {
     }
 
     /**
+     * Returns the self-signed TSA certificate, so tests can pin it as a trust anchor. LTA adds an archive
+     * timestamp whose TSA chain must validate; trusting this certificate satisfies that without the
+     * timestamp's own chain needing revocation data.
+     */
+    public X509Certificate getCertificate() {
+        return tsaCertificate;
+    }
+
+    /**
      * HTTP handler that processes RFC 3161 timestamp requests.
      */
     private class TsaHandler implements HttpHandler {

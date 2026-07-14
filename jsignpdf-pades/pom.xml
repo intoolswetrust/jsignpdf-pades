@@ -133,5 +133,19 @@
             <artifactId>hamcrest-library</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- PadesLevelReader validates a signed PDF with DSS to read back the achieved baseline level
+             (B/T/LT/LTA share the same subfilter, so nothing else distinguishes them). dss-policy-jaxb
+             supplies the default validation policy the validator needs. -->
+        <dependency>
+            <groupId>eu.europa.ec.joinup.sd-dss</groupId>
+            <artifactId>dss-validation</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>eu.europa.ec.joinup.sd-dss</groupId>
+            <artifactId>dss-policy-jaxb</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>
