@@ -18,6 +18,7 @@ import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -48,10 +49,13 @@ import com.github.intoolswetrust.jsignpdf.pades.config.VisibleSignatureConfig;
 import com.github.intoolswetrust.jsignpdf.pades.types.CertificationLevel;
 import com.github.intoolswetrust.jsignpdf.pades.types.PrintRight;
 import com.github.intoolswetrust.jsignpdf.pades.types.ServerAuthentication;
+import com.github.intoolswetrust.jsignpdf.pades.utils.CapturingTspSource;
 import com.github.intoolswetrust.jsignpdf.pades.utils.FontUtils;
 import com.github.intoolswetrust.jsignpdf.pades.utils.PrivateKeySignatureToken;
+import com.github.intoolswetrust.jsignpdf.pades.utils.UntrustedChainReporter;
 
 import eu.europa.esig.dss.alert.LogOnStatusAlert;
+import eu.europa.esig.dss.alert.exception.AlertException;
 import eu.europa.esig.dss.enumerations.CertificationPermission;
 import eu.europa.esig.dss.enumerations.DigestAlgorithm;
 import eu.europa.esig.dss.enumerations.SignatureLevel;
@@ -69,6 +73,8 @@ import eu.europa.esig.dss.service.crl.OnlineCRLSource;
 import eu.europa.esig.dss.service.http.commons.CommonsDataLoader;
 import eu.europa.esig.dss.service.http.commons.OCSPDataLoader;
 import eu.europa.esig.dss.service.http.commons.TimestampDataLoader;
+import eu.europa.esig.dss.service.http.proxy.ProxyConfig;
+import eu.europa.esig.dss.service.http.proxy.ProxyProperties;
 import eu.europa.esig.dss.service.ocsp.OnlineOCSPSource;
 import eu.europa.esig.dss.service.tsp.OnlineTSPSource;
 import eu.europa.esig.dss.spi.validation.CommonCertificateVerifier;
@@ -116,6 +122,9 @@ public class SignerLogic {
     /** Extracts the actual CMS length from the DSS "signature size too small" message. */
     private static final Pattern UNDERSIZE_LENGTH_PATTERN = Pattern.compile("with a length \\[(\\d+)\\]");
 
+    /** Extracts the HTTP status code out of a DSS network failure message. */
+    private static final Pattern HTTP_STATUS_CODE = Pattern.compile("HTTP status code\\s*:\\s*(\\d{3})");
+
     private final BasicConfig options;
 
     public SignerLogic(final BasicConfig anOptions) {
@@ -148,6 +157,10 @@ public class SignerLogic {
         boolean finished = false;
         File encryptedTempFile = null;
         File blankPageTempFile = null;
+        // Hoisted out of the try so the untrusted-chain handler can name the offending certificates: the signer
+        // chain, and the timestamp chain captured by the wrapping TSP source.
+        Certificate[] chain = null;
+        CapturingTspSource tspSource = null;
         try {
             final KeyStore ks = KeyStoreUtils.loadKeyStore(options.getKeyStoreType(), options.getKeyStoreFile(),
                     options.getKeyStorePassword());
@@ -168,7 +181,7 @@ public class SignerLogic {
                 keyPasswd = options.getKeyStorePassword();
             }
             PrivateKey key = (PrivateKey) ks.getKey(alias, keyPasswd);
-            Certificate[] chain = ks.getCertificateChain(alias);
+            chain = ks.getCertificateChain(alias);
 
             if (ArrayUtils.isEmpty(chain)) {
                 LOGGER.info("Certificate chain is empty.");
@@ -277,9 +290,10 @@ public class SignerLogic {
                     return false;
                 }
 
+                ProxyConfig proxyConfig = buildProxyConfig();
                 final CommonCertificateVerifier verifier;
                 try {
-                    verifier = buildCertificateVerifier();
+                    verifier = buildCertificateVerifier(proxyConfig);
                 } catch (Exception e) {
                     // A configured trust source could not be loaded (bad truststore path or password, unreadable
                     // certificate file, unreachable LOTL). Fail rather than sign with trust material that is not
@@ -293,6 +307,7 @@ public class SignerLogic {
                 if (useTsa) {
                     LOGGER.info("Creating TSA client.");
                     TimestampDataLoader tsDataLoader = new TimestampDataLoader();
+                    tsDataLoader.setProxyConfig(proxyConfig);
                     if (options.isInsecureRelaxTls()) {
                         tsDataLoader.setTrustStrategy((certChain, type) -> true);
                     }
@@ -303,12 +318,12 @@ public class SignerLogic {
                         tsDataLoader.addAuthentication(tsaUri.getHost(), resolvePort(tsaUri), null, tsaUser,
                                 tsaPassword);
                     }
-                    OnlineTSPSource tspSource = new OnlineTSPSource(tsaUrl, tsDataLoader);
+                    OnlineTSPSource onlineTspSource = new OnlineTSPSource(tsaUrl, tsDataLoader);
 
                     final String policyOid = tsaConfig.getTsaPolicyOid();
                     if (StringUtils.isNotEmpty(policyOid)) {
                         LOGGER.info("Setting TSA policy: " + policyOid);
-                        tspSource.setPolicyOid(policyOid);
+                        onlineTspSource.setPolicyOid(policyOid);
                     }
                     String tsaHashAlg = tsaConfig.getTsaHashAlgorithm();
                     if (StringUtils.isNotEmpty(tsaHashAlg)) {
@@ -320,6 +335,10 @@ public class SignerLogic {
                         parameters.getSignatureTimestampParameters().setDigestAlgorithm(tsaDigest);
                         parameters.getArchiveTimestampParameters().setDigestAlgorithm(tsaDigest);
                     }
+                    // Wrapped so the timestamp certificates are recorded: if DSS later refuses the signature
+                    // because a chain is not anchored, the report can name the timestamp certificate rather than
+                    // leave a bare fingerprint.
+                    tspSource = new CapturingTspSource(tsaUrl, onlineTspSource);
                     service.setTspSource(tspSource);
                 }
 
@@ -338,8 +357,23 @@ public class SignerLogic {
                 LOGGER.info("Output stream closed.");
             }
             finished = true;
+        } catch (AlertException e) {
+            // DSS refused an LT/LTA signature because revocation data could not be collected for a chain it
+            // cannot anchor. Name the certificates involved instead of leaving the user to map DSS's
+            // C-<fingerprint> token ids back to a CA.
+            Collection<X509Certificate> tsaChain = tspSource != null ? tspSource.getCapturedCertificates() : null;
+            String details = UntrustedChainReporter.describe(e, chain, tsaChain);
+            String message = "The certificate chain is not trusted, so the revocation data the PAdES "
+                    + options.getPadesLevel() + " level embeds could not be collected.";
+            if (!details.isEmpty()) {
+                message = message + System.lineSeparator() + details;
+            }
+            LOGGER.log(Level.SEVERE, message, e);
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Exception during signing.", e);
+            String httpHint = remoteHttpErrorHint(e);
+            LOGGER.log(Level.SEVERE, httpHint != null ? httpHint : "Exception during signing.", e);
+        } catch (OutOfMemoryError e) {
+            LOGGER.log(Level.SEVERE, "Out of memory while signing. Try a larger heap (-Xmx).", e);
         } finally {
             if (encryptedTempFile != null) {
                 encryptedTempFile.delete();
@@ -385,15 +419,62 @@ public class SignerLogic {
     }
 
     /**
+     * Translates the proxy options into a DSS {@link ProxyConfig}, so the timestamp, revocation, certificate and
+     * trusted-list traffic all go through it.
+     *
+     * @return the proxy configuration, or {@code null} for a direct connection
+     */
+    private ProxyConfig buildProxyConfig() {
+        String host = options.getProxyHost();
+        if (StringUtils.isBlank(host)) {
+            return null;
+        }
+        int port = options.getProxyPort();
+        ProxyConfig proxyConfig = new ProxyConfig();
+        proxyConfig.setHttpProperties(proxyProperties(host, port));
+        // An HTTP proxy is reached over http even for https targets (it tunnels them with CONNECT).
+        proxyConfig.setHttpsProperties(proxyProperties(host, port));
+        return proxyConfig;
+    }
+
+    private static ProxyProperties proxyProperties(String host, int port) {
+        ProxyProperties props = new ProxyProperties();
+        props.setScheme("http");
+        props.setHost(host);
+        props.setPort(port);
+        return props;
+    }
+
+    /**
+     * Recognises the TSA responses that are worth a hint rather than a stack trace: 429 (rate limited) and 400,
+     * which public timestamp servers also return when they throttle.
+     *
+     * @return the hint, or {@code null} when the failure is not an HTTP 400 / 429
+     */
+    private static String remoteHttpErrorHint(Throwable e) {
+        for (Throwable t = e; t != null; t = t.getCause()) {
+            String msg = t.getMessage();
+            if (msg != null) {
+                Matcher m = HTTP_STATUS_CODE.matcher(msg);
+                if (m.find() && ("400".equals(m.group(1)) || "429".equals(m.group(1)))) {
+                    return "The timestamp server answered HTTP " + m.group(1) + ". Public timestamp servers rate"
+                            + " limit their clients: wait before retrying, or use a different --tsa-server-url.";
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
      * Builds the verifier DSS resolves trust anchors and revocation data through. Levels B and T need neither,
      * but the sources are configured regardless: they are what the user asked for, and DSS consults them only
      * for the levels that embed validation material.
      */
-    private CommonCertificateVerifier buildCertificateVerifier() throws Exception {
+    private CommonCertificateVerifier buildCertificateVerifier(ProxyConfig proxyConfig) throws Exception {
         CommonCertificateVerifier verifier = new CommonCertificateVerifier();
 
-        CertificateSource[] trustedSources =
-                new TrustedCertSourcesProvider(options.getTrustConfig()).createTrustedCertSources();
+        CertificateSource[] trustedSources = new TrustedCertSourcesProvider(options.getTrustConfig(), proxyConfig)
+                .createTrustedCertSources();
         if (trustedSources.length > 0) {
             verifier.setTrustedCertSources(trustedSources);
         }
@@ -401,6 +482,8 @@ public class SignerLogic {
         if (options.isOnline()) {
             OCSPDataLoader ocspDataLoader = new OCSPDataLoader();
             CommonsDataLoader dataLoader = new CommonsDataLoader();
+            ocspDataLoader.setProxyConfig(proxyConfig);
+            dataLoader.setProxyConfig(proxyConfig);
             if (options.isInsecureRelaxTls()) {
                 ocspDataLoader.setTrustStrategy((certChain, type) -> true);
                 dataLoader.setTrustStrategy((certChain, type) -> true);
@@ -695,7 +778,7 @@ public class SignerLogic {
             if (font != null) {
                 float fontSize = visConfig.getTextFontSize();
                 if (fontSize <= 0f) {
-                    fontSize = 10.0f;
+                    fontSize = Constants.DEFAULT_SIG_TEXT_FONT_SIZE;
                 }
                 font.setSize(fontSize);
                 textParams.setFont(font);

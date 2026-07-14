@@ -7,6 +7,7 @@ import java.util.logging.Level;
 
 import com.github.intoolswetrust.jsignpdf.pades.Constants;
 
+import eu.europa.esig.dss.model.InMemoryDocument;
 import eu.europa.esig.dss.pades.DSSFileFont;
 import eu.europa.esig.dss.pades.DSSFont;
 
@@ -27,7 +28,9 @@ public class FontUtils {
         try (InputStream is = fontFile != null ? new FileInputStream(fontFile)
                 : FontUtils.class.getResourceAsStream(DEFAULT_EMBEDDED_FONT_PATH)) {
             if (is != null) {
-                font = new DSSFileFont(is);
+                // Read the font bytes here, while the stream is open: DSSFileFont re-reads the font lazily, so
+                // it needs a self-contained in-memory copy rather than the stream this method closes on return.
+                font = new DSSFileFont(new InMemoryDocument(is.readAllBytes()));
             }
         } catch (Exception e) {
             Constants.LOGGER.log(Level.SEVERE, "Font loading failed.", e);

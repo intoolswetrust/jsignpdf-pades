@@ -136,6 +136,14 @@ public class BasicConfig {
     @Parameter(names = "--insecure-relax-tls", description = "Switch to INSECURE mode and don't verify TLS connections")
     private boolean insecureRelaxTls;
 
+    // Network
+    @Parameter(names = "--proxy-host", description = "HTTP proxy host for the timestamp, revocation (OCSP, CRL),"
+            + " certificate and trusted-list traffic")
+    private String proxyHost;
+
+    @Parameter(names = "--proxy-port", description = "HTTP proxy port (see --proxy-host)")
+    private int proxyPort;
+
     // Revocation data / trust
     @Parameter(names = "--offline", description = "Don't fetch revocation data (OCSP, CRL) or issuer certificates"
             + " from the network. The PAdES LT and LTA levels embed that data, so they cannot be created offline.")
@@ -421,6 +429,22 @@ public class BasicConfig {
 
     public boolean isInsecureRelaxTls() {
         return insecureRelaxTls;
+    }
+
+    public String getProxyHost() {
+        return proxyHost;
+    }
+
+    public void setProxyHost(String proxyHost) {
+        this.proxyHost = proxyHost;
+    }
+
+    public int getProxyPort() {
+        return proxyPort;
+    }
+
+    public void setProxyPort(int proxyPort) {
+        this.proxyPort = proxyPort;
     }
 
     public boolean isOnline() {

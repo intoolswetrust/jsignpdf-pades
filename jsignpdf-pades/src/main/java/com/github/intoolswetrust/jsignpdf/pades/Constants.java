@@ -63,6 +63,9 @@ public class Constants {
 
     public static final String L2TEXT_FONT_PATH = "/com/github/intoolswetrust/jsignpdf/pades/fonts/DejaVuSans.ttf";
 
+    /** Font size of the visible signature text when none is configured. */
+    public static final float DEFAULT_SIG_TEXT_FONT_SIZE = 10.0f;
+
     public static final String DEFAULT_OUT_SUFFIX = "_signed";
 
 }

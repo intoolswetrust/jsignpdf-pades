@@ -6,7 +6,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -132,6 +138,61 @@ public class LtLtaSigningTest extends SigningTestBase {
         assertTrue(new SignerLogic(options).signFile(inputFile, outputFile),
                 "--trust-allow-untrusted must let LT through for an unanchored chain");
         assertTrue(outputFile.exists(), "Output file should exist");
+    }
+
+    /**
+     * When DSS refuses the signature because a chain is not anchored, it names the offending certificates only
+     * by a {@code C-<fingerprint>} token id. Here the TSA certificate is trusted but the signer's CA is not, so
+     * DSS reaches the revocation step and rejects the signer chain — and the error has to name the signer
+     * certificate and the CA to add, not leave the user staring at a fingerprint.
+     */
+    @Test
+    public void testUntrustedSignerChainIsNamedInTheError() throws Exception {
+        BasicConfig options = createCaSignedOptions(embeddedCa);
+        options.setPadesLevel(PadesLevel.BASELINE_LT);
+        options.getTsaConfig().setTsaServerUrl(tsaServer.getUrl());
+        // The TSA is trusted, the signer's issuing CA deliberately is not.
+        File tsaFile = writeCertificateFile(tsaServer.getCertificate(), "tsa-only.crt");
+        options.getTrustConfig().setCertificateFiles(Collections.singletonList(tsaFile));
+
+        CapturingLogHandler handler = new CapturingLogHandler();
+        Logger logger = Logger.getLogger("com.github.intoolswetrust.jsignpdf.pades");
+        logger.addHandler(handler);
+        try {
+            assertFalse(new SignerLogic(options).signFile(inputFile, outputFile),
+                    "LT signing with an unanchored signer chain must fail");
+        } finally {
+            logger.removeHandler(handler);
+        }
+
+        String severe = handler.severeMessages();
+        assertTrue(severe.contains("Signer chain certificate"), "The error must say which chain is at fault");
+        assertTrue(severe.contains("JSignPdf Test Signer"), "The error must name the signer certificate");
+        assertTrue(severe.contains("JSignPdf Test Root CA"), "The error must name the CA to trust");
+    }
+
+    /** Collects the SEVERE log records, so the engine's own diagnostics can be asserted on. */
+    private static final class CapturingLogHandler extends Handler {
+        private final StringBuilder severe = new StringBuilder();
+
+        @Override
+        public void publish(LogRecord record) {
+            if (record.getLevel().intValue() >= Level.SEVERE.intValue()) {
+                severe.append(new SimpleFormatter().formatMessage(record)).append('\n');
+            }
+        }
+
+        @Override
+        public void flush() {
+        }
+
+        @Override
+        public void close() {
+        }
+
+        String severeMessages() {
+            return severe.toString();
+        }
     }
 
     /**

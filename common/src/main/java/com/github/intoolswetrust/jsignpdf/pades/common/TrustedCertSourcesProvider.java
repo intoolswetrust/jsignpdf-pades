@@ -15,6 +15,7 @@ import java.util.logging.Logger;
 import eu.europa.esig.dss.model.tsl.TLValidationJobSummary;
 import eu.europa.esig.dss.service.http.commons.CommonsDataLoader;
 import eu.europa.esig.dss.service.http.commons.FileCacheDataLoader;
+import eu.europa.esig.dss.service.http.proxy.ProxyConfig;
 import eu.europa.esig.dss.spi.DSSUtils;
 import eu.europa.esig.dss.spi.tsl.TrustedListsCertificateSource;
 import eu.europa.esig.dss.spi.x509.CertificateSource;
@@ -66,8 +67,19 @@ public class TrustedCertSourcesProvider {
 
     private final TrustConfig trustConfig;
 
+    private final ProxyConfig proxyConfig;
+
     public TrustedCertSourcesProvider(TrustConfig trustConfig) {
+        this(trustConfig, null);
+    }
+
+    /**
+     * @param proxyConfig the HTTP proxy to download the trusted lists through, or {@code null} for a direct
+     *                    connection
+     */
+    public TrustedCertSourcesProvider(TrustConfig trustConfig, ProxyConfig proxyConfig) {
         this.trustConfig = trustConfig;
+        this.proxyConfig = proxyConfig;
     }
 
     /**
@@ -82,7 +94,9 @@ public class TrustedCertSourcesProvider {
         LOTLSource[] lotlSources = getLotlSources();
         if (lotlSources.length > 0) {
             TLValidationJob tlValidationJob = new TLValidationJob();
-            FileCacheDataLoader onlineDataLoader = new FileCacheDataLoader(new CommonsDataLoader());
+            CommonsDataLoader dataLoader = new CommonsDataLoader();
+            dataLoader.setProxyConfig(proxyConfig);
+            FileCacheDataLoader onlineDataLoader = new FileCacheDataLoader(dataLoader);
             onlineDataLoader.setFileCacheDirectory(tlCacheDirectory());
             onlineDataLoader.setCacheExpirationTime(TL_CACHE_EXPIRATION_MS);
             tlValidationJob.setOnlineDataLoader(onlineDataLoader);
