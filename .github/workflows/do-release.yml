@@ -25,7 +25,7 @@ jobs:
       base-version: ${{ steps.maven_release.outputs.BASE_VERSION }}
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Verify release notes file exists
       run: |
@@ -93,7 +93,7 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: Checkout release tag
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         ref: ${{ needs.do-release.outputs.tag }}
 
@@ -169,7 +169,7 @@ jobs:
       FULL_VERSION: jsignpdf-pades-${{ needs.do-release.outputs.version }}
     steps:
     - name: Checkout release tag
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         ref: ${{ needs.do-release.outputs.tag }}
 
