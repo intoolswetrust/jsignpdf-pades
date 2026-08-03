@@ -1,0 +1,141 @@
+# This setup provides a containerized Maven build environment with Java 17
+# for building the jsignpdf-pades project without requiring local Java/Maven installation.
+#
+# Usage:
+#   1. Start the build container: docker compose up -d
+#   2. Build the project: docker compose run maven mvn clean package
+#   3. Run specific Maven commands: docker compose run maven mvn <command>
+#   4. Stop the container: docker compose down
+#
+# The built artifacts will be available in the module target directories on your host machine.
+# A Maven cache volume is used to speed up subsequent builds.
+#
+# Example commands:
+#   docker compose run maven mvn clean package          # Build all modules
+#   docker compose run maven mvn test                   # Run tests
+#   docker compose run maven mvn clean install          # Install to local Maven repository
+#   docker compose run maven mvn -pl jsignpdf-pades package  # Build only the main module
+#
+# Requirements:
+#   - Docker and Docker Compose installed on your system
+#
+# Note: The container uses Alpine Linux with Eclipse Temurin 17 (Java 17)
+# and Maven 3.9.6, which meets the project requirements.
+
+volumes:
+  maven-cache:
+
+services:
+  maven:
+    image: maven:3.9.6-eclipse-temurin-17-alpine
+    container_name: jsignpdf-pades-build
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+      - maven-cache:/root/.m2
+    command: tail -f /dev/null
+
+  # Base service with Java and Maven for building
+  jsignpdf-pades-builder:
+    image: maven:3.9.6-eclipse-temurin-17
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+      - maven-cache:/root/.m2
+    command: tail -f /dev/null
+
+  #
+  # Run this using `docker compose run --rm jsignpdf-pades-build` on the CLI
+  # Build the entire project (all modules)
+  #
+  jsignpdf-pades-build:
+    extends: jsignpdf-pades-builder
+    command: mvn clean package
+
+  #
+  # Run this using `docker compose run --rm jsignpdf-pades-build-common` on the CLI
+  # Build just the common module
+  #
+  jsignpdf-pades-build-common:
+    extends: jsignpdf-pades-builder
+    command: mvn clean package -pl common
+
+  #
+  # Run this using `docker compose run --rm jsignpdf-pades-build-signer` on the CLI
+  # Build just the main signing module (jsignpdf-pades)
+  #
+  jsignpdf-pades-build-signer:
+    extends: jsignpdf-pades-builder
+    command: mvn clean package -pl jsignpdf-pades
+
+  #
+  # Run this using `docker compose run --rm jsignpdf-pades-build-validator` on the CLI
+  # Build just the validator module
+  #
+  jsignpdf-pades-build-validator:
+    extends: jsignpdf-pades-builder
+    command: mvn clean package -pl validator
+
+  #
+  # Run this using `docker compose run --rm jsignpdf-pades-build-distribution` on the CLI
+  # Build just the distribution module (creates ZIP assembly)
+  #
+  jsignpdf-pades-build-distribution:
+    extends: jsignpdf-pades-builder
+    command: mvn clean package -pl distribution
+
+  #
+  # Run this using `docker compose run --rm jsignpdf-pades-build-notest` on the CLI
+  # Build the entire project without running tests
+  #
+  jsignpdf-pades-build-notest:
+    extends: jsignpdf-pades-builder
+    command: mvn clean package -DskipTests
+
+  #
+  # Run this using `docker compose run --rm jsignpdf-pades-install` on the CLI
+  # Build and install all modules to local Maven repository
+  #
+  jsignpdf-pades-install:
+    extends: jsignpdf-pades-builder
+    command: mvn clean install
+
+  #
+  # Run this using `docker compose run --rm jsignpdf-pades-install-notest` on the CLI
+  # Install all modules to local Maven repository without running tests
+  #
+  jsignpdf-pades-install-notest:
+    extends: jsignpdf-pades-builder
+    command: mvn clean install -DskipTests
+
+  #
+  # Run this using `docker compose run --rm jsignpdf-pades-clean` on the CLI
+  # Clean all module build outputs
+  #
+  jsignpdf-pades-clean:
+    extends: jsignpdf-pades-builder
+    command: mvn clean
+
+  #
+  # Run this using `docker compose run --rm jsignpdf-pades-deps` on the CLI
+  # Show the dependency tree for all modules
+  #
+  jsignpdf-pades-deps:
+    extends: jsignpdf-pades-builder
+    command: mvn dependency:tree
+
+  #
+  # Run this using `docker compose run --rm jsignpdf-pades-verify` on the CLI
+  # Verify the build (includes tests)
+  #
+  jsignpdf-pades-verify:
+    extends: jsignpdf-pades-builder
+    command: mvn verify
+
+  #
+  # Run this using `docker compose run --rm jsignpdf-pades-site` on the CLI
+  # Generate Maven site documentation
+  #
+  jsignpdf-pades-site:
+    extends: jsignpdf-pades-builder
+    command: mvn site
